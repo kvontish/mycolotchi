@@ -2,18 +2,39 @@
 
 #include <M5Unified.h>
 #include <entt/entity/registry.hpp>
+#include <entt/signal/dispatcher.hpp>
 #include "components.h"
+#include "events.h"
 
 inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX, int16_t baseY, uint16_t camW, uint16_t camH, M5Canvas &canvas)
 {
     int16_t startX = tiled.x ? (baseX % (int16_t)sprite.w + sprite.w) % sprite.w - sprite.w : baseX;
     int16_t startY = tiled.y ? (baseY % (int16_t)sprite.h + sprite.h) % sprite.h - sprite.h : baseY;
-    int16_t endX   = tiled.x ? camW : baseX + sprite.w;
-    int16_t endY   = tiled.y ? camH : baseY + sprite.h;
+    int16_t endX = tiled.x ? camW : baseX + sprite.w;
+    int16_t endY = tiled.y ? camH : baseY + sprite.h;
 
     for (int16_t ty = startY; ty < endY; ty += sprite.h)
         for (int16_t tx = startX; tx < endX; tx += sprite.w)
             canvas.fillRect(tx, ty, sprite.w, sprite.h, sprite.color);
+}
+
+inline void pollInput(entt::registry &registry)
+{
+    auto &dispatcher = registry.ctx<entt::dispatcher>();
+
+    auto poll = [&](m5::Button_Class &btn, ButtonEvent::Button id)
+    {
+        if (btn.wasPressed())
+            dispatcher.enqueue<ButtonEvent>({id, ButtonEvent::Action::Pressed});
+        if (btn.wasReleased())
+            dispatcher.enqueue<ButtonEvent>({id, ButtonEvent::Action::Released});
+    };
+
+    poll(M5.BtnA, ButtonEvent::Button::A);
+    poll(M5.BtnB, ButtonEvent::Button::B);
+    poll(M5.BtnC, ButtonEvent::Button::C);
+
+    dispatcher.update<ButtonEvent>();
 }
 
 inline void debugFps(entt::registry &registry)
@@ -52,7 +73,8 @@ inline void render(entt::registry &registry)
     canvas.clear();
 
     auto view = registry.view<Position, Sprite>();
-    view.each([&registry, &camera, &canvas](entt::entity entity, const Position &pos, const Sprite &sprite) {
+    view.each([&registry, &camera, &canvas](entt::entity entity, const Position &pos, const Sprite &sprite)
+              {
         int16_t baseX = pos.x - (int16_t)(camera.x * pos.parallax);
         int16_t baseY = pos.y - (int16_t)(camera.y * pos.parallax);
 
@@ -66,9 +88,7 @@ inline void render(entt::registry &registry)
         if (baseX + sprite.w <= 0 || baseX >= camera.w) return;
         if (baseY + sprite.h <= 0 || baseY >= camera.h) return;
 
-        canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color);
-    });
-
+        canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color); });
 }
 
 inline void present(entt::registry &registry)
@@ -81,6 +101,5 @@ inline void present(entt::registry &registry)
         M5.Display.height() / 2,
         0.0f,
         camera.scale,
-        camera.scale
-    );
+        camera.scale);
 }
