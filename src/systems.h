@@ -37,22 +37,45 @@ inline void pollInput(entt::registry &registry)
     dispatcher.update<ButtonEvent>();
 }
 
-inline void debugFps(entt::registry &registry)
+inline void showDebugOverlay(entt::registry &registry)
 {
-    static uint32_t lastFrame = 0;
+    static uint32_t lastCheck = 0;
     static uint16_t fps = 0;
+    static uint16_t frameCount = 0;
+    static int8_t batteryLevel = -1;
+    static bool charging = false;
 
     uint32_t now = millis();
-    uint32_t elapsed = now - lastFrame;
-    lastFrame = now;
+    frameCount++;
 
-    if (elapsed > 0)
-        fps = 1000 / elapsed;
+    if (now - lastCheck >= 1000)
+    {
+        fps = frameCount * 1000 / (now - lastCheck);
+        frameCount = 0;
+        batteryLevel = M5.Power.getBatteryLevel();
+        charging = M5.Power.isCharging();
+        lastCheck = now;
+    }
 
     auto &canvas = registry.ctx<M5Canvas>();
-    canvas.setCursor(2, 2);
+    const auto &camera = registry.ctx<Camera>();
+
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-    canvas.printf("FPS: %3u", fps);
+
+    // FPS — top left
+    canvas.setCursor(2, 2);
+    canvas.printf("FPS:%3u", fps);
+
+    // battery icon — top right
+    if (batteryLevel >= 0)
+    {
+        int16_t x = camera.w - 18;
+        int16_t y = 2;
+        uint16_t color = charging ? TFT_GREEN : (batteryLevel < 20 ? TFT_RED : TFT_WHITE);
+        canvas.drawRect(x, y, 14, 7, TFT_WHITE);
+        canvas.fillRect(x + 14, y + 2, 2, 3, TFT_WHITE);
+        canvas.fillRect(x + 1, y + 1, batteryLevel * 12 / 100, 5, color);
+    }
 }
 
 inline void debugPanCamera(entt::registry &registry)

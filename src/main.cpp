@@ -51,6 +51,6 @@ void loop()
 
     // rendering/presentation systems
     render(registry);
-    debugFps(registry);
+    showDebugOverlay(registry);
     present(registry);
 }
