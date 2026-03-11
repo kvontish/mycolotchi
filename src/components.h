@@ -13,8 +13,9 @@ struct Camera
 {
     int16_t x{0};
     int16_t y{0};
-    uint16_t w{320};
-    uint16_t h{240};
+    uint16_t w{160};
+    uint16_t h{120};
+    uint8_t scale{2};
 };
 
 struct Tiled

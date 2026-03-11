@@ -4,6 +4,7 @@
 #include "systems.h"
 
 entt::registry registry;
+M5Canvas canvas(&M5.Display);
 
 void setup()
 {
@@ -11,6 +12,8 @@ void setup()
     Serial.begin(115200);
 
     registry.set<Camera>();
+    const auto &camera = registry.ctx<Camera>();
+    canvas.createSprite(camera.w, camera.h);
 
     auto entity = registry.create();
     registry.emplace<Position>(entity, int16_t(10), int16_t(10));
@@ -20,5 +23,5 @@ void setup()
 void loop()
 {
     M5.update();
-    render(registry);
+    render(registry, canvas);
 }
