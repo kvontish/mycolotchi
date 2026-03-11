@@ -16,13 +16,18 @@ void setup()
     registry.set<M5Canvas>(&M5.Display);
     registry.ctx<M5Canvas>().createSprite(camera.w, camera.h);
 
-    auto entity = registry.create();
-    registry.emplace<Position>(entity, int16_t(10), int16_t(10));
-    registry.emplace<Sprite>(entity, uint16_t(32), uint16_t(32), uint16_t(TFT_PURPLE));
+    auto purpleBox = registry.create();
+    registry.emplace<Position>(purpleBox, int16_t(10), int16_t(10), 0.5f);
+    registry.emplace<Sprite>(purpleBox, uint16_t(32), uint16_t(32), uint16_t(TFT_PURPLE));
+
+    auto blueBox = registry.create();
+    registry.emplace<Position>(blueBox, int16_t(50), int16_t(50));
+    registry.emplace<Sprite>(blueBox, uint16_t(32), uint16_t(32), uint16_t(TFT_BLUE));
 }
 
 void loop()
 {
     M5.update();
+    debugPanCamera(registry);
     render(registry);
 }

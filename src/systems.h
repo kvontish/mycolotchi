@@ -16,6 +16,16 @@ inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX,
             canvas.fillRect(tx, ty, sprite.w, sprite.h, sprite.color);
 }
 
+inline void debugPanCamera(entt::registry &registry)
+{
+    static int16_t dir = 1;
+    auto &camera = registry.ctx<Camera>();
+
+    camera.x += dir;
+    if (camera.x >= 50 || camera.x <= -50)
+        dir = -dir;
+}
+
 inline void render(entt::registry &registry)
 {
     const auto &camera = registry.ctx<Camera>();
