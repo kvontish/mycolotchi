@@ -3,6 +3,8 @@
 #include <entt/signal/dispatcher.hpp>
 #include "components.h"
 #include "systems.h"
+#include "scene.h"
+#include "game_scene.h"
 
 entt::registry registry;
 
@@ -31,25 +33,16 @@ void setup()
     registry.set<M5Canvas>(&M5.Display);
     registry.ctx<M5Canvas>().createSprite(camera.w, camera.h);
 
-    auto &dispatcher = registry.ctx<entt::dispatcher>();
-    dispatcher.sink<ButtonEvent>().connect<&onButton>();
+    registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&onButton>();
 
-    auto purpleBox = registry.create();
-    registry.emplace<Position>(purpleBox, int16_t(10), int16_t(10), 0.5f);
-    registry.emplace<Sprite>(purpleBox, uint16_t(32), uint16_t(32), uint16_t(TFT_PURPLE));
-
-    auto blueBox = registry.create();
-    registry.emplace<Position>(blueBox, int16_t(50), int16_t(50));
-    registry.emplace<Sprite>(blueBox, uint16_t(32), uint16_t(32), uint16_t(TFT_BLUE));
+    registry.set<SceneManager>();
+    registry.ctx<SceneManager>().transition(&GameScene::scene);
 }
 
 void loop()
 {
     M5.update();
-    pollInput(registry);
-    debugPanCamera(registry);
-
-    // rendering/presentation systems
+    registry.ctx<SceneManager>().update(registry);
     render(registry);
     showDebugOverlay(registry);
     present(registry);
