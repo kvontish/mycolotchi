@@ -16,9 +16,10 @@ inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX,
             canvas.fillRect(tx, ty, sprite.w, sprite.h, sprite.color);
 }
 
-inline void render(entt::registry &registry, M5Canvas &canvas)
+inline void render(entt::registry &registry)
 {
     const auto &camera = registry.ctx<Camera>();
+    auto &canvas = registry.ctx<M5Canvas>();
 
     canvas.clear();
 
