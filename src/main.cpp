@@ -29,5 +29,9 @@ void loop()
 {
     M5.update();
     debugPanCamera(registry);
+
+    // rendering/presentation systems
     render(registry);
+    debugFps(registry);
+    present(registry);
 }

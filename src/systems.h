@@ -16,6 +16,24 @@ inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX,
             canvas.fillRect(tx, ty, sprite.w, sprite.h, sprite.color);
 }
 
+inline void debugFps(entt::registry &registry)
+{
+    static uint32_t lastFrame = 0;
+    static uint16_t fps = 0;
+
+    uint32_t now = millis();
+    uint32_t elapsed = now - lastFrame;
+    lastFrame = now;
+
+    if (elapsed > 0)
+        fps = 1000 / elapsed;
+
+    auto &canvas = registry.ctx<M5Canvas>();
+    canvas.setCursor(2, 2);
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.printf("FPS: %3u", fps);
+}
+
 inline void debugPanCamera(entt::registry &registry)
 {
     static int16_t dir = 1;
@@ -50,6 +68,13 @@ inline void render(entt::registry &registry)
 
         canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color);
     });
+
+}
+
+inline void present(entt::registry &registry)
+{
+    const auto &camera = registry.ctx<Camera>();
+    auto &canvas = registry.ctx<M5Canvas>();
 
     canvas.pushRotateZoom(
         M5.Display.width() / 2,
