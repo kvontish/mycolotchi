@@ -8,6 +8,7 @@
 class GameScene : public Scene
 {
     entt::registry *mRegistry{nullptr};
+    int16_t mNextSpawnX{200};
 
     void onButton(const ButtonEvent &e)
     {
@@ -17,7 +18,7 @@ class GameScene : public Scene
         mRegistry->view<Player, Velocity>().each([this](entt::entity entity, Velocity &vel) {
             if (mRegistry->all_of<Grounded>(entity))
             {
-                vel.y = -10;
+                vel.y = -12;
                 mRegistry->remove<Grounded>(entity);
             }
         });
@@ -27,6 +28,7 @@ public:
     void load(entt::registry &registry) override
     {
         mRegistry = &registry;
+        mNextSpawnX = 200;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameScene::onButton>(this);
 
         auto ground = registry.create();
@@ -39,7 +41,7 @@ public:
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
         registry.emplace<Sprite>(player, uint16_t(32), uint16_t(32), uint16_t(TFT_PURPLE));
-        registry.emplace<Velocity>(player, int16_t(1), int16_t(0));
+        registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
 
@@ -47,7 +49,7 @@ public:
         auto cameraTarget = registry.create();
         registry.emplace<CameraTarget>(cameraTarget);
         registry.emplace<Position>(cameraTarget, camera.x, camera.y);
-        registry.emplace<Velocity>(cameraTarget, int16_t(1), int16_t(0));
+        registry.emplace<Velocity>(cameraTarget, int16_t(3), int16_t(0));
     }
 
     void unload(entt::registry &registry) override
@@ -62,6 +64,8 @@ public:
         pollInput(registry);
         physics(registry);
         groundCheck(registry);
+        spawn(registry, mNextSpawnX);
+        despawn(registry);
         moveCamera(registry);
     }
 };

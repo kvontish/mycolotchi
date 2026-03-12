@@ -36,6 +36,9 @@ struct CameraTarget {};
 struct Grounded {};
 struct Gravity {};
 struct Solid {};
+struct Obstacle {};
+struct Coin {};
+struct Despawnable {};
 
 struct Velocity
 {

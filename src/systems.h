@@ -3,6 +3,7 @@
 #include <M5Unified.h>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
+#include <vector>
 #include "components.h"
 #include "events.h"
 
@@ -110,6 +111,46 @@ inline void moveCamera(entt::registry &registry)
         camera.x = pos.x;
         camera.y = pos.y;
     });
+}
+
+inline void spawn(entt::registry &registry, int16_t &nextSpawnX)
+{
+    const auto &camera = registry.ctx<Camera>();
+    int16_t spawnEdge = camera.x + (int16_t)camera.w;
+
+    if (spawnEdge < nextSpawnX)
+        return;
+
+    auto e = registry.create();
+    registry.emplace<Position>(e, spawnEdge, (int16_t)random(75, 85));
+    registry.emplace<Despawnable>(e);
+
+    if (random(2) == 0)
+    {
+        registry.emplace<Obstacle>(e);
+        registry.emplace<Sprite>(e, uint16_t(10), uint16_t(10), uint16_t(TFT_RED));
+    }
+    else
+    {
+        registry.emplace<Coin>(e);
+        registry.emplace<Sprite>(e, uint16_t(10), uint16_t(10), uint16_t(TFT_GOLD));
+    }
+
+    nextSpawnX = spawnEdge + (int16_t)random(60, 140);
+}
+
+inline void despawn(entt::registry &registry)
+{
+    const auto &camera = registry.ctx<Camera>();
+
+    std::vector<entt::entity> toDestroy;
+    registry.view<Despawnable, Position, Sprite>().each([&](entt::entity e, const Position &pos, const Sprite &sprite) {
+        if (pos.x + (int16_t)sprite.w < camera.x - 16)
+            toDestroy.push_back(e);
+    });
+
+    for (auto e : toDestroy)
+        registry.destroy(e);
 }
 
 inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX, int16_t baseY, uint16_t camW, uint16_t camH, M5Canvas &canvas)
