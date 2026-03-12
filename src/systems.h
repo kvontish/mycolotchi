@@ -60,6 +60,8 @@ inline void showDebugOverlay(entt::registry &registry)
     auto &canvas = registry.ctx<M5Canvas>();
     const auto &camera = registry.ctx<Camera>();
 
+    canvas.setTextSize(1);
+    canvas.setTextDatum(TL_DATUM);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
 
     // FPS — top left
@@ -112,6 +114,14 @@ inline void render(entt::registry &registry)
         if (baseY + sprite.h <= 0 || baseY >= camera.h) return;
 
         canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color); });
+
+    auto labelView = registry.view<Position, Label>();
+    labelView.each([&canvas](const Position &pos, const Label &label) {
+        canvas.setTextSize(label.size);
+        canvas.setTextDatum(MC_DATUM);
+        canvas.setTextColor(label.color);
+        canvas.drawString(label.text, pos.x, pos.y);
+    });
 }
 
 inline void present(entt::registry &registry)

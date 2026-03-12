@@ -5,10 +5,10 @@
 #include "systems.h"
 #include "scene.h"
 
-namespace GameScene
+class GameScene : public Scene
 {
-
-    void load(entt::registry &registry)
+public:
+    void load(entt::registry &registry) override
     {
         auto purpleBox = registry.create();
         registry.emplace<Position>(purpleBox, int16_t(10), int16_t(10), 0.5f);
@@ -19,16 +19,16 @@ namespace GameScene
         registry.emplace<Sprite>(blueBox, uint16_t(32), uint16_t(32), uint16_t(TFT_BLUE));
     }
 
-    void unload(entt::registry &registry)
+    void unload(entt::registry &registry) override
     {
         registry.clear();
     }
 
-    void update(entt::registry &registry)
+    void update(entt::registry &registry) override
     {
         pollInput(registry);
         debugPanCamera(registry);
     }
+};
 
-    constexpr Scene scene{load, unload, update};
-}
+inline GameScene gameScene;

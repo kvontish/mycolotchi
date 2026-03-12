@@ -4,32 +4,28 @@
 
 struct Scene
 {
-    void (*load)(entt::registry &){nullptr};
-    void (*unload)(entt::registry &){nullptr};
-    void (*update)(entt::registry &){nullptr};
+    virtual void load(entt::registry &) {}
+    virtual void unload(entt::registry &) {}
+    virtual void update(entt::registry &) {}
+    virtual ~Scene() = default;
 };
 
 struct SceneManager
 {
-    const Scene *current{nullptr};
-    const Scene *next{nullptr};
+    Scene *current{nullptr};
+    Scene *next{nullptr};
 
-    void transition(const Scene *scene) { next = scene; }
+    void transition(Scene *scene) { next = scene; }
 
     void update(entt::registry &registry)
     {
         if (next)
         {
-            if (current && current->unload)
-                current->unload(registry);
-
+            if (current) current->unload(registry);
             current = next;
             next = nullptr;
-            
-            if (current->load)
-                current->load(registry);
+            current->load(registry);
         }
-        if (current && current->update)
-            current->update(registry);
+        if (current) current->update(registry);
     }
 };

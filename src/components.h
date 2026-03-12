@@ -24,6 +24,13 @@ struct Tiled
     bool y{true};
 };
 
+struct Label
+{
+    const char *text{nullptr};
+    uint16_t color{TFT_WHITE};
+    uint8_t size{1};
+};
+
 struct Sprite
 {
     uint16_t w{0};
