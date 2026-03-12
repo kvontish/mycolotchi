@@ -29,6 +29,7 @@ public:
     {
         mRegistry = &registry;
         mNextSpawnX = 200;
+        registry.set<Score>();
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameScene::onButton>(this);
 
         auto ground = registry.create();
@@ -55,6 +56,7 @@ public:
     void unload(entt::registry &registry) override
     {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
+        registry.unset<Score>();
         mRegistry = nullptr;
         registry.clear();
     }
@@ -66,6 +68,7 @@ public:
         groundCheck(registry);
         spawn(registry, mNextSpawnX);
         despawn(registry);
+        collectCoins(registry);
         moveCamera(registry);
     }
 };

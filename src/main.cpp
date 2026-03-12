@@ -29,6 +29,6 @@ void loop()
     M5.update();
     registry.ctx<SceneManager>().update(registry);
     render(registry);
-    showDebugOverlay(registry);
+showDebugOverlay(registry);
     present(registry);
 }

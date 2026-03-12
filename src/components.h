@@ -40,6 +40,11 @@ struct Obstacle {};
 struct Coin {};
 struct Despawnable {};
 
+struct Score
+{
+    uint32_t value{0};
+};
+
 struct Velocity
 {
     int16_t x{0};

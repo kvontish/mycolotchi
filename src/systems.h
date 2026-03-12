@@ -153,6 +153,28 @@ inline void despawn(entt::registry &registry)
         registry.destroy(e);
 }
 
+inline void collectCoins(entt::registry &registry)
+{
+    auto players = registry.view<Player, Position, Sprite>();
+    auto coins   = registry.view<Coin, Position, Sprite>();
+
+    std::vector<entt::entity> collected;
+    players.each([&](const Position &pp, const Sprite &ps) {
+        coins.each([&](entt::entity coin, const Position &cp, const Sprite &cs) {
+            if (pp.x < cp.x + (int16_t)cs.w && pp.x + (int16_t)ps.w > cp.x &&
+                pp.y < cp.y + (int16_t)cs.h && pp.y + (int16_t)ps.h > cp.y)
+                collected.push_back(coin);
+        });
+    });
+
+    for (auto e : collected)
+    {
+        registry.destroy(e);
+        registry.ctx<Score>().value++;
+    }
+}
+
+
 inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX, int16_t baseY, uint16_t camW, uint16_t camH, M5Canvas &canvas)
 {
     int16_t startX = tiled.x ? (baseX % (int16_t)sprite.w + sprite.w) % sprite.w - sprite.w : baseX;
