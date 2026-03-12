@@ -12,17 +12,14 @@ inline void pollInput(entt::registry &registry)
 {
     auto &dispatcher = registry.ctx<entt::dispatcher>();
 
-    auto poll = [&](m5::Button_Class &btn, ButtonEvent::Button id)
+    for (uint8_t i = 0; i < 3; i++)
     {
-        if (btn.wasPressed())
-            dispatcher.enqueue<ButtonEvent>({id, ButtonEvent::Action::Pressed});
-        if (btn.wasReleased())
-            dispatcher.enqueue<ButtonEvent>({id, ButtonEvent::Action::Released});
-    };
-
-    poll(M5.BtnA, ButtonEvent::Button::A);
-    poll(M5.BtnB, ButtonEvent::Button::B);
-    poll(M5.BtnC, ButtonEvent::Button::C);
+        if (gBtnPressed[i])
+        {
+            gBtnPressed[i] = false;
+            dispatcher.enqueue<ButtonEvent>({ButtonEvent::Button(i), ButtonEvent::Action::Pressed});
+        }
+    }
 
     dispatcher.update<ButtonEvent>();
 }

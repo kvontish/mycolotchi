@@ -10,6 +10,20 @@
 
 entt::registry registry;
 
+volatile bool gBtnPressed[3]{false, false, false};
+
+void inputTask(void *)
+{
+    for (;;)
+    {
+        M5.update();
+        if (M5.BtnA.wasPressed()) gBtnPressed[0] = true;
+        if (M5.BtnB.wasPressed()) gBtnPressed[1] = true;
+        if (M5.BtnC.wasPressed()) gBtnPressed[2] = true;
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+}
+
 void setup()
 {
     M5.begin();
@@ -17,6 +31,8 @@ void setup()
 
     titleScene.nextScene    = &gameScene;
     gameOverScene.nextScene = &gameScene;
+
+    xTaskCreatePinnedToCore(inputTask, "input", 2048, nullptr, 1, nullptr, 0);
 
     registry.set<entt::dispatcher>();
     registry.set<Camera>();
@@ -31,7 +47,6 @@ void setup()
 
 void loop()
 {
-    M5.update();
     registry.ctx<SceneManager>().update(registry);
     render(registry);
     showDebugOverlay(registry);
