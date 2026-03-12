@@ -47,10 +47,11 @@ public:
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
 
-        auto camera = registry.ctx<Camera>();
+        auto &camera = registry.ctx<Camera>();
+        camera.x = 0;
+        camera.y = 0;
         auto cameraTarget = registry.create();
         registry.emplace<CameraTarget>(cameraTarget);
-        camera.x = 0; // reset camera x
         registry.emplace<Position>(cameraTarget, camera.x, camera.y);
         registry.emplace<Velocity>(cameraTarget, int16_t(3), int16_t(0));
     }
