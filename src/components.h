@@ -2,15 +2,13 @@
 
 #include <M5Unified.h>
 
-struct Position
-{
+struct Position {
     int16_t x{0};
     int16_t y{0};
     float parallax{1.0f};
 };
 
-struct Camera
-{
+struct Camera {
     int16_t x{0};
     int16_t y{0};
     uint16_t w{160};
@@ -18,14 +16,12 @@ struct Camera
     uint8_t scale{2};
 };
 
-struct Tiled
-{
+struct Tiled {
     bool x{true};
     bool y{true};
 };
 
-struct Label
-{
+struct Label {
     const char *text{nullptr};
     uint16_t color{TFT_WHITE};
     uint8_t size{1};
@@ -40,19 +36,16 @@ struct Obstacle {};
 struct Coin {};
 struct Despawnable {};
 
-struct Score
-{
+struct Score {
     uint32_t value{0};
 };
 
-struct Velocity
-{
+struct Velocity {
     int16_t x{0};
     int16_t y{0};
 };
 
-struct Sprite
-{
+struct Sprite {
     uint16_t w{0};
     uint16_t h{0};
     uint16_t color{TFT_TRANSPARENT};

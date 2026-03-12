@@ -1,26 +1,23 @@
 #pragma once
 
-#include <entt/entity/registry.hpp>
 #include "components.h"
-#include "systems.h"
 #include "scene.h"
+#include "systems.h"
+#include <entt/entity/registry.hpp>
 
-class TitleScene : public Scene
-{
+class TitleScene : public Scene {
     entt::registry *mRegistry{nullptr};
 
-    void onButton(const ButtonEvent &e)
-    {
+    void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
             return;
         mRegistry->ctx<SceneManager>().transition(nextScene);
     }
 
-public:
+  public:
     Scene *nextScene{nullptr};
 
-    void load(entt::registry &registry) override
-    {
+    void load(entt::registry &registry) override {
         mRegistry = &registry;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&TitleScene::onButton>(this);
 
@@ -33,17 +30,13 @@ public:
         registry.emplace<Label>(prompt, "tap to start!", uint16_t(TFT_LIGHTGREY), uint8_t(1));
     }
 
-    void unload(entt::registry &registry) override
-    {
+    void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&TitleScene::onButton>(this);
         mRegistry = nullptr;
         registry.clear();
     }
 
-    void update(entt::registry &registry) override
-    {
-        pollInput(registry);
-    }
+    void update(entt::registry &registry) override { pollInput(registry); }
 };
 
 inline TitleScene titleScene;

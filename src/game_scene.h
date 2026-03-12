@@ -1,33 +1,29 @@
 #pragma once
 
-#include <entt/entity/registry.hpp>
 #include "components.h"
-#include "systems.h"
-#include "scene.h"
 #include "game_over_scene.h"
+#include "scene.h"
+#include "systems.h"
+#include <entt/entity/registry.hpp>
 
-class GameScene : public Scene
-{
+class GameScene : public Scene {
     entt::registry *mRegistry{nullptr};
     int16_t mNextSpawnX{200};
 
-    void onButton(const ButtonEvent &e)
-    {
+    void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
             return;
 
         mRegistry->view<Player, Velocity>().each([this](entt::entity entity, Velocity &vel) {
-            if (mRegistry->all_of<Grounded>(entity))
-            {
+            if (mRegistry->all_of<Grounded>(entity)) {
                 vel.y = -12;
                 mRegistry->remove<Grounded>(entity);
             }
         });
     }
 
-public:
-    void load(entt::registry &registry) override
-    {
+  public:
+    void load(entt::registry &registry) override {
         mRegistry = &registry;
         mNextSpawnX = 200;
         registry.set<Score>();
@@ -56,15 +52,13 @@ public:
         registry.emplace<Velocity>(cameraTarget, int16_t(3), int16_t(0));
     }
 
-    void unload(entt::registry &registry) override
-    {
+    void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
         mRegistry = nullptr;
         registry.clear();
     }
 
-    void update(entt::registry &registry) override
-    {
+    void update(entt::registry &registry) override {
         pollInput(registry);
         physics(registry);
         groundCheck(registry);

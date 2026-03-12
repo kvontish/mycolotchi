@@ -1,32 +1,30 @@
 #pragma once
 
-#include <entt/entity/registry.hpp>
 #include "components.h"
-#include "systems.h"
 #include "scene.h"
+#include "systems.h"
+#include <entt/entity/registry.hpp>
 
-class GameOverScene : public Scene
-{
+class GameOverScene : public Scene {
     entt::registry *mRegistry{nullptr};
     char mScoreText[24]{};
 
-    void onButton(const ButtonEvent &e)
-    {
+    void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
             return;
         mRegistry->ctx<SceneManager>().transition(nextScene);
     }
 
-public:
+  public:
     Scene *nextScene{nullptr};
 
-    void load(entt::registry &registry) override
-    {
+    void load(entt::registry &registry) override {
         mRegistry = &registry;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameOverScene::onButton>(this);
 
         uint32_t score = 0;
-        if (auto *s = registry.try_ctx<Score>()) score = s->value;
+        if (auto *s = registry.try_ctx<Score>())
+            score = s->value;
         snprintf(mScoreText, sizeof(mScoreText), "score: %lu", score);
 
         auto title = registry.create();
@@ -42,17 +40,13 @@ public:
         registry.emplace<Label>(prompt, "tap to retry", uint16_t(TFT_LIGHTGREY), uint8_t(1));
     }
 
-    void unload(entt::registry &registry) override
-    {
+    void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameOverScene::onButton>(this);
         mRegistry = nullptr;
         registry.clear();
     }
 
-    void update(entt::registry &registry) override
-    {
-        pollInput(registry);
-    }
+    void update(entt::registry &registry) override { pollInput(registry); }
 };
 
 inline GameOverScene gameOverScene;

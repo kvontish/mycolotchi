@@ -1,0 +1,26 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: true
+AllowShortLambdasOnASingleLine: All
+LambdaBodyIndentation: OuterScope
+ColumnLimit: 120
+AlignAfterOpenBracket: Align
+BinPackArguments: false
+BinPackParameters: false

@@ -1,21 +1,18 @@
 #pragma once
 
+#include "components.h"
+#include "events.h"
+#include "scene.h"
 #include <M5Unified.h>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <vector>
-#include "components.h"
-#include "events.h"
-#include "scene.h"
 
-inline void pollInput(entt::registry &registry)
-{
+inline void pollInput(entt::registry &registry) {
     auto &dispatcher = registry.ctx<entt::dispatcher>();
 
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        if (gBtnPressed[i])
-        {
+    for (uint8_t i = 0; i < 3; i++) {
+        if (gBtnPressed[i]) {
             gBtnPressed[i] = false;
             dispatcher.enqueue<ButtonEvent>({ButtonEvent::Button(i), ButtonEvent::Action::Pressed});
         }
@@ -24,8 +21,7 @@ inline void pollInput(entt::registry &registry)
     dispatcher.update<ButtonEvent>();
 }
 
-inline void showDebugOverlay(entt::registry &registry)
-{
+inline void showDebugOverlay(entt::registry &registry) {
     static uint32_t lastCheck = 0;
     static uint16_t fps = 0;
     static uint16_t frameCount = 0;
@@ -35,8 +31,7 @@ inline void showDebugOverlay(entt::registry &registry)
     uint32_t now = millis();
     frameCount++;
 
-    if (now - lastCheck >= 1000)
-    {
+    if (now - lastCheck >= 1000) {
         fps = frameCount * 1000 / (now - lastCheck);
         frameCount = 0;
         batteryLevel = M5.Power.getBatteryLevel();
@@ -56,8 +51,7 @@ inline void showDebugOverlay(entt::registry &registry)
     canvas.printf("FPS:%3u", fps);
 
     // battery icon — top right
-    if (batteryLevel >= 0)
-    {
+    if (batteryLevel >= 0) {
         int16_t x = camera.w - 18;
         int16_t y = 2;
         uint16_t color = charging ? TFT_GREEN : (batteryLevel < 20 ? TFT_RED : TFT_WHITE);
@@ -67,8 +61,7 @@ inline void showDebugOverlay(entt::registry &registry)
     }
 }
 
-inline void physics(entt::registry &registry)
-{
+inline void physics(entt::registry &registry) {
     const int16_t gravity = 1;
 
     auto view = registry.view<Position, Velocity>();
@@ -80,29 +73,26 @@ inline void physics(entt::registry &registry)
     });
 }
 
-inline void groundCheck(entt::registry &registry)
-{
+inline void groundCheck(entt::registry &registry) {
     int16_t groundY = INT16_MAX;
     registry.view<Solid, Position>().each([&groundY](const Position &pos) {
-        if (pos.y < groundY) groundY = pos.y;
+        if (pos.y < groundY)
+            groundY = pos.y;
     });
 
-    registry.view<Player, Position, Velocity, Sprite>().each([&registry, groundY](entt::entity entity, Position &pos, Velocity &vel, const Sprite &sprite) {
-        if (vel.y >= 0 && pos.y + (int16_t)sprite.h >= groundY)
-        {
+    registry.view<Player, Position, Velocity, Sprite>().each(
+        [&registry, groundY](entt::entity entity, Position &pos, Velocity &vel, const Sprite &sprite) {
+        if (vel.y >= 0 && pos.y + (int16_t)sprite.h >= groundY) {
             pos.y = groundY - (int16_t)sprite.h;
             vel.y = 0;
             registry.emplace_or_replace<Grounded>(entity);
-        }
-        else if (registry.all_of<Grounded>(entity))
-        {
+        } else if (registry.all_of<Grounded>(entity)) {
             registry.remove<Grounded>(entity);
         }
     });
 }
 
-inline void moveCamera(entt::registry &registry)
-{
+inline void moveCamera(entt::registry &registry) {
     auto &camera = registry.ctx<Camera>();
     auto view = registry.view<CameraTarget, Position>();
     view.each([&camera](const Position &pos) {
@@ -111,8 +101,7 @@ inline void moveCamera(entt::registry &registry)
     });
 }
 
-inline void spawn(entt::registry &registry, int16_t &nextSpawnX)
-{
+inline void spawn(entt::registry &registry, int16_t &nextSpawnX) {
     const auto &camera = registry.ctx<Camera>();
     int16_t spawnEdge = camera.x + (int16_t)camera.w;
 
@@ -123,13 +112,10 @@ inline void spawn(entt::registry &registry, int16_t &nextSpawnX)
     registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 90));
     registry.emplace<Despawnable>(e);
 
-    if (random(2) == 0)
-    {
+    if (random(2) == 0) {
         registry.emplace<Obstacle>(e);
         registry.emplace<Sprite>(e, uint16_t(10), uint16_t(10), uint16_t(TFT_RED));
-    }
-    else
-    {
+    } else {
         registry.emplace<Coin>(e);
         registry.emplace<Sprite>(e, uint16_t(10), uint16_t(10), uint16_t(TFT_GOLD));
     }
@@ -137,8 +123,7 @@ inline void spawn(entt::registry &registry, int16_t &nextSpawnX)
     nextSpawnX = spawnEdge + (int16_t)random(60, 140);
 }
 
-inline void despawn(entt::registry &registry)
-{
+inline void despawn(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
 
     std::vector<entt::entity> toDestroy;
@@ -151,16 +136,15 @@ inline void despawn(entt::registry &registry)
         registry.destroy(e);
 }
 
-inline void checkCollisions(entt::registry &registry, Scene *onHit)
-{
-    auto players   = registry.view<Player, Position, Sprite>();
+inline void checkCollisions(entt::registry &registry, Scene *onHit) {
+    auto players = registry.view<Player, Position, Sprite>();
     auto obstacles = registry.view<Obstacle, Position, Sprite>();
 
     bool hit = false;
     players.each([&](const Position &pp, const Sprite &ps) {
         obstacles.each([&](const Position &op, const Sprite &os) {
-            if (pp.x < op.x + (int16_t)os.w && pp.x + (int16_t)ps.w > op.x &&
-                pp.y < op.y + (int16_t)os.h && pp.y + (int16_t)ps.h > op.y)
+            if (pp.x < op.x + (int16_t)os.w && pp.x + (int16_t)ps.w > op.x && pp.y < op.y + (int16_t)os.h &&
+                pp.y + (int16_t)ps.h > op.y)
                 hit = true;
         });
     });
@@ -169,30 +153,32 @@ inline void checkCollisions(entt::registry &registry, Scene *onHit)
         registry.ctx<SceneManager>().transition(onHit);
 }
 
-inline void collectCoins(entt::registry &registry)
-{
+inline void collectCoins(entt::registry &registry) {
     auto players = registry.view<Player, Position, Sprite>();
-    auto coins   = registry.view<Coin, Position, Sprite>();
+    auto coins = registry.view<Coin, Position, Sprite>();
 
     std::vector<entt::entity> collected;
     players.each([&](const Position &pp, const Sprite &ps) {
         coins.each([&](entt::entity coin, const Position &cp, const Sprite &cs) {
-            if (pp.x < cp.x + (int16_t)cs.w && pp.x + (int16_t)ps.w > cp.x &&
-                pp.y < cp.y + (int16_t)cs.h && pp.y + (int16_t)ps.h > cp.y)
+            if (pp.x < cp.x + (int16_t)cs.w && pp.x + (int16_t)ps.w > cp.x && pp.y < cp.y + (int16_t)cs.h &&
+                pp.y + (int16_t)ps.h > cp.y)
                 collected.push_back(coin);
         });
     });
 
-    for (auto e : collected)
-    {
+    for (auto e : collected) {
         registry.destroy(e);
         registry.ctx<Score>().value++;
     }
 }
 
-
-inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX, int16_t baseY, uint16_t camW, uint16_t camH, M5Canvas &canvas)
-{
+inline void renderTiled(const Tiled &tiled,
+                        const Sprite &sprite,
+                        int16_t baseX,
+                        int16_t baseY,
+                        uint16_t camW,
+                        uint16_t camH,
+                        M5Canvas &canvas) {
     int16_t startX = tiled.x ? (baseX % (int16_t)sprite.w + sprite.w) % sprite.w - sprite.w : baseX;
     int16_t startY = tiled.y ? (baseY % (int16_t)sprite.h + sprite.h) % sprite.h - sprite.h : baseY;
     int16_t endX = tiled.x ? camW : baseX + sprite.w;
@@ -203,30 +189,30 @@ inline void renderTiled(const Tiled &tiled, const Sprite &sprite, int16_t baseX,
             canvas.fillRect(tx, ty, sprite.w, sprite.h, sprite.color);
 }
 
-inline void render(entt::registry &registry)
-{
+inline void render(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
     auto &canvas = registry.ctx<M5Canvas>();
 
     canvas.clear();
 
     auto view = registry.view<Position, Sprite>();
-    view.each([&registry, &camera, &canvas](entt::entity entity, const Position &pos, const Sprite &sprite)
-              {
+    view.each([&registry, &camera, &canvas](entt::entity entity, const Position &pos, const Sprite &sprite) {
         int16_t baseX = pos.x - (int16_t)(camera.x * pos.parallax);
         int16_t baseY = pos.y - (int16_t)(camera.y * pos.parallax);
 
         const Tiled *tiled = registry.try_get<Tiled>(entity);
-        if (tiled)
-        {
+        if (tiled) {
             renderTiled(*tiled, sprite, baseX, baseY, camera.w, camera.h, canvas);
             return;
         }
 
-        if (baseX + sprite.w <= 0 || baseX >= camera.w) return;
-        if (baseY + sprite.h <= 0 || baseY >= camera.h) return;
+        if (baseX + sprite.w <= 0 || baseX >= camera.w)
+            return;
+        if (baseY + sprite.h <= 0 || baseY >= camera.h)
+            return;
 
-        canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color); });
+        canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color);
+    });
 
     auto labelView = registry.view<Position, Label>();
     labelView.each([&canvas](const Position &pos, const Label &label) {
@@ -237,15 +223,9 @@ inline void render(entt::registry &registry)
     });
 }
 
-inline void present(entt::registry &registry)
-{
+inline void present(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
     auto &canvas = registry.ctx<M5Canvas>();
 
-    canvas.pushRotateZoom(
-        M5.Display.width() / 2,
-        M5.Display.height() / 2,
-        0.0f,
-        camera.scale,
-        camera.scale);
+    canvas.pushRotateZoom(M5.Display.width() / 2, M5.Display.height() / 2, 0.0f, camera.scale, camera.scale);
 }

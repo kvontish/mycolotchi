@@ -1,35 +1,35 @@
+#include "components.h"
+#include "game_over_scene.h"
+#include "game_scene.h"
+#include "scene.h"
+#include "systems.h"
+#include "title_scene.h"
 #include <M5Unified.h>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
-#include "components.h"
-#include "systems.h"
-#include "scene.h"
-#include "game_scene.h"
-#include "game_over_scene.h"
-#include "title_scene.h"
 
 entt::registry registry;
 
 volatile bool gBtnPressed[3]{false, false, false};
 
-void inputTask(void *)
-{
-    for (;;)
-    {
+void inputTask(void *) {
+    for (;;) {
         M5.update();
-        if (M5.BtnA.wasPressed()) gBtnPressed[0] = true;
-        if (M5.BtnB.wasPressed()) gBtnPressed[1] = true;
-        if (M5.BtnC.wasPressed()) gBtnPressed[2] = true;
+        if (M5.BtnA.wasPressed())
+            gBtnPressed[0] = true;
+        if (M5.BtnB.wasPressed())
+            gBtnPressed[1] = true;
+        if (M5.BtnC.wasPressed())
+            gBtnPressed[2] = true;
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
-void setup()
-{
+void setup() {
     M5.begin();
     Serial.begin(115200);
 
-    titleScene.nextScene    = &gameScene;
+    titleScene.nextScene = &gameScene;
     gameOverScene.nextScene = &gameScene;
 
     xTaskCreatePinnedToCore(inputTask, "input", 2048, nullptr, 1, nullptr, 0);
@@ -45,8 +45,7 @@ void setup()
     registry.ctx<SceneManager>().transition(&titleScene);
 }
 
-void loop()
-{
+void loop() {
     registry.ctx<SceneManager>().update(registry);
     render(registry);
     showDebugOverlay(registry);
