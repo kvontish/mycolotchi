@@ -31,6 +31,15 @@ struct Label
     uint8_t size{1};
 };
 
+struct Player {};
+struct CameraTarget {};
+
+struct Velocity
+{
+    int16_t x{0};
+    int16_t y{0};
+};
+
 struct Sprite
 {
     uint16_t w{0};
