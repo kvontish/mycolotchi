@@ -4,6 +4,7 @@
 #include "components.h"
 #include "systems.h"
 #include "scene.h"
+#include "game_over_scene.h"
 
 class GameScene : public Scene
 {
@@ -49,6 +50,7 @@ public:
         auto camera = registry.ctx<Camera>();
         auto cameraTarget = registry.create();
         registry.emplace<CameraTarget>(cameraTarget);
+        camera.x = 0; // reset camera x
         registry.emplace<Position>(cameraTarget, camera.x, camera.y);
         registry.emplace<Velocity>(cameraTarget, int16_t(3), int16_t(0));
     }
@@ -56,7 +58,6 @@ public:
     void unload(entt::registry &registry) override
     {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
-        registry.unset<Score>();
         mRegistry = nullptr;
         registry.clear();
     }
@@ -66,6 +67,7 @@ public:
         pollInput(registry);
         physics(registry);
         groundCheck(registry);
+        checkCollisions(registry, &gameOverScene);
         spawn(registry, mNextSpawnX);
         despawn(registry);
         collectCoins(registry);

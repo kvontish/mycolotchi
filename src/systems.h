@@ -6,6 +6,7 @@
 #include <vector>
 #include "components.h"
 #include "events.h"
+#include "scene.h"
 
 inline void pollInput(entt::registry &registry)
 {
@@ -122,7 +123,7 @@ inline void spawn(entt::registry &registry, int16_t &nextSpawnX)
         return;
 
     auto e = registry.create();
-    registry.emplace<Position>(e, spawnEdge, (int16_t)random(75, 85));
+    registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 90));
     registry.emplace<Despawnable>(e);
 
     if (random(2) == 0)
@@ -151,6 +152,24 @@ inline void despawn(entt::registry &registry)
 
     for (auto e : toDestroy)
         registry.destroy(e);
+}
+
+inline void checkCollisions(entt::registry &registry, Scene *onHit)
+{
+    auto players   = registry.view<Player, Position, Sprite>();
+    auto obstacles = registry.view<Obstacle, Position, Sprite>();
+
+    bool hit = false;
+    players.each([&](const Position &pp, const Sprite &ps) {
+        obstacles.each([&](const Position &op, const Sprite &os) {
+            if (pp.x < op.x + (int16_t)os.w && pp.x + (int16_t)ps.w > op.x &&
+                pp.y < op.y + (int16_t)os.h && pp.y + (int16_t)ps.h > op.y)
+                hit = true;
+        });
+    });
+
+    if (hit)
+        registry.ctx<SceneManager>().transition(onHit);
 }
 
 inline void collectCoins(entt::registry &registry)

@@ -4,7 +4,6 @@
 #include "components.h"
 #include "systems.h"
 #include "scene.h"
-#include "game_scene.h"
 
 class TitleScene : public Scene
 {
@@ -14,10 +13,12 @@ class TitleScene : public Scene
     {
         if (e.action != ButtonEvent::Action::Pressed)
             return;
-        mRegistry->ctx<SceneManager>().transition(&gameScene);
+        mRegistry->ctx<SceneManager>().transition(nextScene);
     }
 
 public:
+    Scene *nextScene{nullptr};
+
     void load(entt::registry &registry) override
     {
         mRegistry = &registry;

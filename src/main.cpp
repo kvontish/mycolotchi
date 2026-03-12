@@ -4,6 +4,8 @@
 #include "components.h"
 #include "systems.h"
 #include "scene.h"
+#include "game_scene.h"
+#include "game_over_scene.h"
 #include "title_scene.h"
 
 entt::registry registry;
@@ -12,6 +14,9 @@ void setup()
 {
     M5.begin();
     Serial.begin(115200);
+
+    titleScene.nextScene    = &gameScene;
+    gameOverScene.nextScene = &gameScene;
 
     registry.set<entt::dispatcher>();
     registry.set<Camera>();
@@ -29,6 +34,6 @@ void loop()
     M5.update();
     registry.ctx<SceneManager>().update(registry);
     render(registry);
-showDebugOverlay(registry);
+    showDebugOverlay(registry);
     present(registry);
 }
