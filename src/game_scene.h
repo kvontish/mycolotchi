@@ -14,7 +14,13 @@ class GameScene : public Scene
         if (e.action != ButtonEvent::Action::Pressed)
             return;
 
-        // TODO jump
+        mRegistry->view<Player, Velocity>().each([this](entt::entity entity, Velocity &vel) {
+            if (mRegistry->all_of<Grounded>(entity))
+            {
+                vel.y = -10;
+                mRegistry->remove<Grounded>(entity);
+            }
+        });
     }
 
 public:
@@ -27,12 +33,15 @@ public:
         registry.emplace<Position>(ground, int16_t(0), int16_t(100));
         registry.emplace<Sprite>(ground, uint16_t(160), uint16_t(20), uint16_t(TFT_DARKGREEN));
         registry.emplace<Tiled>(ground, true, false);
+        registry.emplace<Solid>(ground);
 
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
         registry.emplace<Sprite>(player, uint16_t(32), uint16_t(32), uint16_t(TFT_PURPLE));
         registry.emplace<Velocity>(player, int16_t(1), int16_t(0));
+        registry.emplace<Gravity>(player);
+        registry.emplace<Grounded>(player);
 
         auto camera = registry.ctx<Camera>();
         auto cameraTarget = registry.create();
@@ -52,6 +61,7 @@ public:
     {
         pollInput(registry);
         physics(registry);
+        groundCheck(registry);
         moveCamera(registry);
     }
 };

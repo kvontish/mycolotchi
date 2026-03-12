@@ -33,6 +33,9 @@ struct Label
 
 struct Player {};
 struct CameraTarget {};
+struct Grounded {};
+struct Gravity {};
+struct Solid {};
 
 struct Velocity
 {

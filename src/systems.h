@@ -70,10 +70,35 @@ inline void showDebugOverlay(entt::registry &registry)
 
 inline void physics(entt::registry &registry)
 {
+    const int16_t gravity = 1;
+
     auto view = registry.view<Position, Velocity>();
-    view.each([](Position &pos, const Velocity &vel) {
+    view.each([&registry, gravity](entt::entity entity, Position &pos, Velocity &vel) {
+        if (registry.all_of<Gravity>(entity))
+            vel.y += gravity;
         pos.x += vel.x;
         pos.y += vel.y;
+    });
+}
+
+inline void groundCheck(entt::registry &registry)
+{
+    int16_t groundY = INT16_MAX;
+    registry.view<Solid, Position>().each([&groundY](const Position &pos) {
+        if (pos.y < groundY) groundY = pos.y;
+    });
+
+    registry.view<Player, Position, Velocity, Sprite>().each([&registry, groundY](entt::entity entity, Position &pos, Velocity &vel, const Sprite &sprite) {
+        if (vel.y >= 0 && pos.y + (int16_t)sprite.h >= groundY)
+        {
+            pos.y = groundY - (int16_t)sprite.h;
+            vel.y = 0;
+            registry.emplace_or_replace<Grounded>(entity);
+        }
+        else if (registry.all_of<Grounded>(entity))
+        {
+            registry.remove<Grounded>(entity);
+        }
     });
 }
 
