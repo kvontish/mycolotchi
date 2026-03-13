@@ -229,8 +229,7 @@ inline void pushScaled(M5Canvas &canvas, uint16_t srcW, uint16_t srcH, uint8_t s
 
     const uint16_t *src = static_cast<const uint16_t *>(canvas.getBuffer());
 
-    // One pre-allocated row wide enough for camera.w * max expected scale
-    static uint16_t rowBuf[640];
+    static uint16_t rowBuf[320]; // one scaled row, bounded by display width
 
     M5.Display.startWrite();
     M5.Display.setWindow(dstX, dstY, dstX + srcW * scale - 1, dstY + srcH * scale - 1);
