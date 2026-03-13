@@ -223,9 +223,40 @@ inline void render(entt::registry &registry) {
     });
 }
 
+inline void pushScaled(M5Canvas &canvas, uint16_t srcW, uint16_t srcH, uint8_t scale) {
+    const int32_t dstX = (M5.Display.width() - srcW * scale) / 2;
+    const int32_t dstY = (M5.Display.height() - srcH * scale) / 2;
+
+    const uint16_t *src = static_cast<const uint16_t *>(canvas.getBuffer());
+
+    // One pre-allocated row wide enough for camera.w * max expected scale
+    static uint16_t rowBuf[640];
+
+    M5.Display.startWrite();
+    M5.Display.setWindow(dstX, dstY, dstX + srcW * scale - 1, dstY + srcH * scale - 1);
+
+    for (uint16_t sy = 0; sy < srcH; sy++) {
+        const uint16_t *srcRow = src + sy * srcW;
+
+        // Expand each pixel horizontally by `scale`
+        uint16_t *p = rowBuf;
+        for (uint16_t sx = 0; sx < srcW; sx++) {
+            uint16_t px = srcRow[sx];
+            for (uint8_t s = 0; s < scale; s++)
+                *p++ = px;
+        }
+
+        // Repeat the same expanded row `scale` times for vertical scaling
+        for (uint8_t s = 0; s < scale; s++)
+            M5.Display.writePixels(rowBuf, srcW * scale);
+    }
+
+    M5.Display.endWrite();
+}
+
 inline void present(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
     auto &canvas = registry.ctx<M5Canvas>();
 
-    canvas.pushRotateZoom(M5.Display.width() / 2, M5.Display.height() / 2, 0.0f, camera.scale, camera.scale);
+    pushScaled(canvas, camera.w, camera.h, camera.scale);
 }
