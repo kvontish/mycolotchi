@@ -6,7 +6,10 @@
 #include <M5Unified.h>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
+#include <esp_sleep.h>
 #include <vector>
+
+static uint32_t sLastActivityMs = 0;
 
 inline void pollInput(entt::registry &registry) {
     auto &dispatcher = registry.ctx<entt::dispatcher>();
@@ -14,11 +17,33 @@ inline void pollInput(entt::registry &registry) {
     for (uint8_t i = 0; i < 3; i++) {
         if (gBtnPressed[i]) {
             gBtnPressed[i] = false;
+            sLastActivityMs = millis();
             dispatcher.enqueue<ButtonEvent>({ButtonEvent::Button(i), ButtonEvent::Action::Pressed});
         }
     }
 
     dispatcher.update<ButtonEvent>();
+}
+
+// FT6336 touch controller INT pin — fires low on any touch, usable as ext0 wake source
+static constexpr gpio_num_t kTouchIntPin = GPIO_NUM_39;
+static constexpr uint32_t kSleepTimeoutMs = 30000;
+
+inline void sleepIfInactive() {
+    if (millis() - sLastActivityMs < kSleepTimeoutMs)
+        return;
+
+    uint8_t brightness = M5.Display.getBrightness();
+    M5.Display.setBrightness(0);
+    M5.Display.sleep();
+
+    esp_sleep_enable_ext0_wakeup(kTouchIntPin, 0);
+    esp_light_sleep_start();
+    // Execution resumes here after any touch
+
+    sLastActivityMs = millis();
+    M5.Display.wakeup();
+    M5.Display.setBrightness(brightness);
 }
 
 inline void showDebugOverlay(entt::registry &registry) {

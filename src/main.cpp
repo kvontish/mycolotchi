@@ -46,6 +46,7 @@ void setup() {
 }
 
 void loop() {
+    sleepIfInactive();
     registry.ctx<SceneManager>().update(registry);
     render(registry);
     showDebugOverlay(registry);
