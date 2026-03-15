@@ -57,8 +57,8 @@ struct Score {
 struct Sprite {
     uint16_t w{0};
     uint16_t h{0};
-    uint16_t color{TFT_TRANSPARENT};
     M5Canvas *data{nullptr};       // borrowed; points to current frame canvas owned by AnimationSet
+    uint16_t color{TFT_TRANSPARENT};
 };
 
 struct Tiled {

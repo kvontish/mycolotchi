@@ -41,7 +41,7 @@ class GameScene : public Scene {
             bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
-        registry.emplace<Sprite>(bg, bgW, bgH, uint16_t(TFT_TRANSPARENT), mBgSprite);
+        registry.emplace<Sprite>(bg, bgW, bgH, mBgSprite);
         registry.emplace<Tiled>(bg, true, false);
 
         uint16_t midW, midH;
@@ -50,7 +50,7 @@ class GameScene : public Scene {
             midW, midH);
         auto mid = registry.create();
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
-        registry.emplace<Sprite>(mid, midW, midH, uint16_t(TFT_TRANSPARENT), mMidSprite);
+        registry.emplace<Sprite>(mid, midW, midH, mMidSprite);
         registry.emplace<Tiled>(mid, true, false);
 
         uint16_t groundW, groundH;
@@ -59,7 +59,7 @@ class GameScene : public Scene {
             groundW, groundH);
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(90));
-        registry.emplace<Sprite>(ground, groundW, uint16_t(30), uint16_t(TFT_TRANSPARENT), mGroundSprite);
+        registry.emplace<Sprite>(ground, groundW, uint16_t(30), mGroundSprite);
         registry.emplace<Hitbox>(ground, uint16_t(0), uint16_t(0), int8_t(0), int8_t(6));
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
@@ -114,7 +114,7 @@ class GameScene : public Scene {
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h, uint16_t(TFT_TRANSPARENT));
+        registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h);
         registry.emplace<Hitbox>(player, uint16_t(20), uint16_t(20), int8_t(5), int8_t(9));
         registry.emplace<AnimationState>(player, mPlayerAnimSet);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
