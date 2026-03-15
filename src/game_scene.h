@@ -35,10 +35,13 @@ class GameScene : public Scene {
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
 
+        uint16_t pw = 32, ph = 32;
+        uint16_t *playerData = loadSpriteFromSD("/Characters/Players/Foxy/Sprites/run/player-run-1.png", pw, ph);
+
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, uint16_t(32), uint16_t(32), uint16_t(TFT_PURPLE));
+        registry.emplace<Sprite>(player, pw, ph, uint16_t(TFT_TRANSPARENT), playerData);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
@@ -55,6 +58,7 @@ class GameScene : public Scene {
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
         mRegistry = nullptr;
+        freeSprites(registry);
         registry.clear();
     }
 

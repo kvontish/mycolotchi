@@ -197,6 +197,15 @@ inline void collectCoins(entt::registry &registry) {
     }
 }
 
+inline void freeSprites(entt::registry &registry) {
+    registry.view<Sprite>().each([](Sprite &sprite) {
+        if (sprite.data) {
+            free(const_cast<uint16_t *>(sprite.data));
+            sprite.data = nullptr;
+        }
+    });
+}
+
 inline void drawSprite(M5Canvas &canvas, const Sprite &sprite, int16_t x, int16_t y) {
     if (sprite.color != TFT_TRANSPARENT)
         canvas.fillRect(x, y, sprite.w, sprite.h, sprite.color);

@@ -5,6 +5,7 @@
 #include "systems.h"
 #include "title_scene.h"
 #include <M5Unified.h>
+#include <SD.h>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
 
@@ -28,6 +29,7 @@ void inputTask(void *) {
 void setup() {
     M5.begin();
     Serial.begin(115200);
+    SD.begin(4); // M5Core2 SD CS pin
 
     titleScene.nextScene = &gameScene;
     gameOverScene.nextScene = &gameScene;
