@@ -154,13 +154,13 @@ spawn(entt::registry &registry, int16_t &nextSpawnX, AnimationSet *coinAnimSet, 
     if (random(2) == 0) {
         registry.emplace<Position>(e, spawnEdge, int16_t(74)); // bottom capped at groundY - obstacleH
         registry.emplace<Obstacle>(e);
-        registry.emplace<Sprite>(e, obstacleAnimSet->w, obstacleAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<Sprite>(e, obstacleAnimSet->w, obstacleAnimSet->h, uint16_t(TFT_TRANSPARENT));
         registry.emplace<Hitbox>(e, uint16_t(16), uint16_t(14), int8_t(5), int8_t(6));
         registry.emplace<AnimationState>(e, obstacleAnimSet);
     } else {
         registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 88)); // bottom capped at groundY - coinH
         registry.emplace<Coin>(e);
-        registry.emplace<Sprite>(e, coinAnimSet->w, coinAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<Sprite>(e, coinAnimSet->w, coinAnimSet->h, uint16_t(TFT_TRANSPARENT));
         registry.emplace<AnimationState>(e, coinAnimSet);
     }
 
@@ -257,7 +257,7 @@ inline void drawSprite(M5Canvas &canvas, const Sprite &sprite, int16_t x, int16_
     if (sprite.color != TFT_TRANSPARENT)
         canvas.fillRect(x, y, sprite.w, sprite.h, sprite.color);
     if (sprite.data)
-        canvas.pushImage(x, y, sprite.w, sprite.h, sprite.data);
+        sprite.data->pushSprite(&canvas, x, y, TFT_TRANSPARENT);
 }
 
 inline void renderTiled(const Tiled &tiled,

@@ -88,7 +88,7 @@ class GameScene : public Scene {
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h, uint16_t(TFT_TRANSPARENT));
         registry.emplace<AnimationState>(player, mPlayerAnimSet);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
