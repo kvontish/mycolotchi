@@ -7,6 +7,7 @@
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <esp_sleep.h>
+#include <algorithm>
 #include <vector>
 
 static uint32_t sLastActivityMs = 0;
@@ -114,9 +115,11 @@ inline void physics(entt::registry &registry) {
 
 inline void groundCheck(entt::registry &registry) {
     int16_t groundY = INT16_MAX;
-    registry.view<Solid, Position>().each([&groundY](const Position &pos) {
-        if (pos.y < groundY)
-            groundY = pos.y;
+    registry.view<Solid, Position>().each([&registry, &groundY](entt::entity e, const Position &pos) {
+        const Hitbox *hb = registry.try_get<Hitbox>(e);
+        int16_t y = pos.y + (hb ? hb->oy : int8_t(0));
+        if (y < groundY)
+            groundY = y;
     });
 
     registry.view<Player, Position, Velocity, Sprite>().each(
@@ -302,14 +305,10 @@ inline void render(entt::registry &registry) {
 
     canvas.clear();
 
-    registry.view<Background, Position, Sprite>().each(
-        [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
-
-    registry.view<Midground, Position, Sprite>().each(
-        [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
-
-    registry.view<Position, Sprite>(entt::exclude<Background, Midground>).each(
-        [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
+    auto view = registry.view<Position, Sprite>();
+    std::for_each(view.rbegin(), view.rend(), [&](entt::entity e) {
+        drawEntity(registry, camera, canvas, e, view.get<Position>(e), view.get<Sprite>(e));
+    });
 
     auto labelView = registry.view<Position, Label>();
     labelView.each([&canvas](const Position &pos, const Label &label) {

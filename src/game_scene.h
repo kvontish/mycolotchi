@@ -14,6 +14,7 @@ class GameScene : public Scene {
     AnimationSet *mObstacleAnimSet{nullptr};
     M5Canvas *mBgSprite{nullptr};
     M5Canvas *mMidSprite{nullptr};
+    M5Canvas *mGroundSprite{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -39,7 +40,6 @@ class GameScene : public Scene {
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120.png",
             bgW, bgH);
         auto bg = registry.create();
-        registry.emplace<Background>(bg);
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
         registry.emplace<Sprite>(bg, bgW, bgH, uint16_t(TFT_TRANSPARENT), mBgSprite);
         registry.emplace<Tiled>(bg, true, false);
@@ -49,14 +49,18 @@ class GameScene : public Scene {
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120.png",
             midW, midH);
         auto mid = registry.create();
-        registry.emplace<Midground>(mid);
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
         registry.emplace<Sprite>(mid, midW, midH, uint16_t(TFT_TRANSPARENT), mMidSprite);
         registry.emplace<Tiled>(mid, true, false);
 
+        uint16_t groundW, groundH;
+        mGroundSprite = loadSpriteFromSD(
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120.png",
+            groundW, groundH);
         auto ground = registry.create();
-        registry.emplace<Position>(ground, int16_t(0), int16_t(100));
-        registry.emplace<Sprite>(ground, uint16_t(160), uint16_t(20), uint16_t(TFT_DARKGREEN));
+        registry.emplace<Position>(ground, int16_t(0), int16_t(90));
+        registry.emplace<Sprite>(ground, groundW, uint16_t(30), uint16_t(TFT_TRANSPARENT), mGroundSprite);
+        registry.emplace<Hitbox>(ground, uint16_t(0), uint16_t(0), int8_t(0), int8_t(6));
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
 
@@ -133,6 +137,7 @@ class GameScene : public Scene {
         freeAnimationSet(mObstacleAnimSet);
         freeSprite(mBgSprite);
         freeSprite(mMidSprite);
+        freeSprite(mGroundSprite);
         registry.clear();
     }
 
