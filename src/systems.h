@@ -154,14 +154,14 @@ spawn(entt::registry &registry, int16_t &nextSpawnX, AnimationSet *coinAnimSet, 
     auto e = registry.create();
     registry.emplace<Despawnable>(e);
 
-    if (random(2) == 0) {
+    if (random(5) < 2) { // 40% obstacle, 60% coin
         registry.emplace<Position>(e, spawnEdge, int16_t(74)); // bottom capped at groundY - obstacleH
         registry.emplace<Obstacle>(e);
         registry.emplace<Sprite>(e, obstacleAnimSet->w, obstacleAnimSet->h, uint16_t(TFT_TRANSPARENT));
         registry.emplace<Hitbox>(e, uint16_t(16), uint16_t(14), int8_t(5), int8_t(6));
         registry.emplace<AnimationState>(e, obstacleAnimSet);
     } else {
-        registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 88)); // bottom capped at groundY - coinH
+        registry.emplace<Position>(e, spawnEdge, (int16_t)random(50, 84)); // bottom capped at groundHitboxY(96) - coinH(13) = 83
         registry.emplace<Coin>(e);
         registry.emplace<Sprite>(e, coinAnimSet->w, coinAnimSet->h, uint16_t(TFT_TRANSPARENT));
         registry.emplace<AnimationState>(e, coinAnimSet);
