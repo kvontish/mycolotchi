@@ -35,13 +35,30 @@ class GameScene : public Scene {
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
 
+        static const char *runPaths[] = {
+            "/Characters/Players/Foxy/Sprites/run/player-run-1.png",
+            "/Characters/Players/Foxy/Sprites/run/player-run-2.png",
+            "/Characters/Players/Foxy/Sprites/run/player-run-3.png",
+            "/Characters/Players/Foxy/Sprites/run/player-run-4.png",
+            "/Characters/Players/Foxy/Sprites/run/player-run-5.png",
+            "/Characters/Players/Foxy/Sprites/run/player-run-6.png",
+        };
+        static const char *jumpPaths[] = {
+            "/Characters/Players/Foxy/Sprites/jump/player-jump-1.png",
+            "/Characters/Players/Foxy/Sprites/jump/player-jump-2.png",
+        };
+
         uint16_t pw = 32, ph = 32;
-        uint16_t *playerData = loadSpriteFromSD("/Characters/Players/Foxy/Sprites/run/player-run-1.png", pw, ph);
+        AnimationClip *clips = (AnimationClip *)malloc(2 * sizeof(AnimationClip));
+        clips[0] = loadAnimationClipFromSD(runPaths, 6, 100, pw, ph);
+        clips[1] = loadAnimationClipFromSD(jumpPaths, 2, 150, pw, ph);
+        clips[1].loop = false;
 
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, pw, ph, uint16_t(TFT_TRANSPARENT), playerData);
+        registry.emplace<Sprite>(player, pw, ph, uint16_t(TFT_TRANSPARENT));
+        registry.emplace<Animation>(player, clips, uint8_t(2));
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
@@ -66,6 +83,8 @@ class GameScene : public Scene {
         pollInput(registry);
         physics(registry);
         groundCheck(registry);
+        updatePlayerAnimation(registry);
+        animateSprites(registry);
         checkCollisions(registry, &gameOverScene);
         spawn(registry, mNextSpawnX);
         despawn(registry);

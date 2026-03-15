@@ -50,6 +50,25 @@ struct Scene {
         tmp.deleteSprite();
         return buf;
     }
+
+    // Loads multiple PNGs from the SD card into a heap-allocated AnimationClip.
+    // outW and outH are set from the first frame. Caller must free via freeAnimations().
+    static AnimationClip loadAnimationClipFromSD(const char * const *paths, uint8_t count,
+                                                  uint16_t frameDurationMs,
+                                                  uint16_t &outW, uint16_t &outH) {
+        uint16_t **frames = (uint16_t **)malloc(count * sizeof(uint16_t *));
+        outW = 0;
+        outH = 0;
+        for (uint8_t i = 0; i < count; i++) {
+            uint16_t w, h;
+            frames[i] = loadSpriteFromSD(paths[i], w, h);
+            if (i == 0) {
+                outW = w;
+                outH = h;
+            }
+        }
+        return {frames, count, frameDurationMs};
+    }
 };
 
 struct SceneManager {
