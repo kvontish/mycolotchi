@@ -126,7 +126,8 @@ inline void moveCamera(entt::registry &registry) {
     });
 }
 
-inline void spawn(entt::registry &registry, int16_t &nextSpawnX, AnimationSet *coinAnimSet) {
+inline void
+spawn(entt::registry &registry, int16_t &nextSpawnX, AnimationSet *coinAnimSet, AnimationSet *obstacleAnimSet) {
     const auto &camera = registry.ctx<Camera>();
     int16_t spawnEdge = camera.x + (int16_t)camera.w;
 
@@ -134,15 +135,17 @@ inline void spawn(entt::registry &registry, int16_t &nextSpawnX, AnimationSet *c
         return;
 
     auto e = registry.create();
-    registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 90));
     registry.emplace<Despawnable>(e);
 
     if (random(2) == 0) {
+        registry.emplace<Position>(e, spawnEdge, 74); // bottom capped at groundY - obstacleH
         registry.emplace<Obstacle>(e);
-        registry.emplace<Sprite>(e, uint16_t(10), uint16_t(10), uint16_t(TFT_RED));
+        registry.emplace<Sprite>(e, obstacleAnimSet->w, obstacleAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<AnimationState>(e, obstacleAnimSet);
     } else {
+        registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 88)); // bottom capped at groundY - coinH
         registry.emplace<Coin>(e);
-        registry.emplace<Sprite>(e, uint16_t(15), uint16_t(13), uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<Sprite>(e, coinAnimSet->w, coinAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
         registry.emplace<AnimationState>(e, coinAnimSet);
     }
 

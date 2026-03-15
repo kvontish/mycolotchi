@@ -12,6 +12,8 @@ struct Animation {
 struct AnimationSet {
     Animation *animations{nullptr}; // heap-allocated array of animations, indexed by state; owned by the scene
     uint8_t animationCount{0};
+    uint16_t w{0};
+    uint16_t h{0};
 };
 
 struct AnimationState {

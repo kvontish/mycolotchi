@@ -11,6 +11,7 @@ class GameScene : public Scene {
     int16_t mNextSpawnX{200};
     AnimationSet *mPlayerAnimSet{nullptr};
     AnimationSet *mCoinAnimSet{nullptr};
+    AnimationSet *mObstacleAnimSet{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -56,7 +57,7 @@ class GameScene : public Scene {
         anims[1] = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
         anims[1].loop = false;
         mPlayerAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *mPlayerAnimSet = {anims, 2};
+        *mPlayerAnimSet = {anims, 2, pw, ph};
 
         static const char *gemPaths[] = {
             "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-1.png",
@@ -69,12 +70,25 @@ class GameScene : public Scene {
         Animation *coinAnims = (Animation *)malloc(sizeof(Animation));
         coinAnims[0] = loadAnimationFromSD(gemPaths, 5, 100, gw, gh);
         mCoinAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *mCoinAnimSet = {coinAnims, 1};
+        *mCoinAnimSet = {coinAnims, 1, gw, gh};
+
+        static const char *fireballPaths[] = {
+            "/Props Items and VFX/fireball/Sprites/fireball-1.png",
+            "/Props Items and VFX/fireball/Sprites/fireball-2.png",
+            "/Props Items and VFX/fireball/Sprites/fireball-3.png",
+            "/Props Items and VFX/fireball/Sprites/fireball-4.png",
+            "/Props Items and VFX/fireball/Sprites/fireball-5.png",
+        };
+        uint16_t fw, fh;
+        Animation *obstacleAnims = (Animation *)malloc(sizeof(Animation));
+        obstacleAnims[0] = loadAnimationFromSD(fireballPaths, 5, 80, fw, fh);
+        mObstacleAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *mObstacleAnimSet = {obstacleAnims, 1, fw, fh};
 
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, pw, ph, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
         registry.emplace<AnimationState>(player, mPlayerAnimSet);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
@@ -94,6 +108,7 @@ class GameScene : public Scene {
         mRegistry = nullptr;
         freeAnimationSet(mPlayerAnimSet);
         freeAnimationSet(mCoinAnimSet);
+        freeAnimationSet(mObstacleAnimSet);
         registry.clear();
     }
 
@@ -104,7 +119,7 @@ class GameScene : public Scene {
         updatePlayerAnimation(registry);
         animateSprites(registry);
         checkCollisions(registry, &gameOverScene);
-        spawn(registry, mNextSpawnX, mCoinAnimSet);
+        spawn(registry, mNextSpawnX, mCoinAnimSet, mObstacleAnimSet);
         despawn(registry);
         collectCoins(registry);
         moveCamera(registry);
