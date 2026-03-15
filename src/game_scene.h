@@ -115,6 +115,7 @@ class GameScene : public Scene {
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
         registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h, uint16_t(TFT_TRANSPARENT));
+        registry.emplace<Hitbox>(player, uint16_t(20), uint16_t(20), int8_t(5), int8_t(9));
         registry.emplace<AnimationState>(player, mPlayerAnimSet);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
