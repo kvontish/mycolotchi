@@ -23,6 +23,13 @@ struct AnimationState {
     uint32_t lastFrameMs{0};
 };
 
+struct Hitbox {
+    uint16_t w{0};
+    uint16_t h{0};
+    int8_t ox{0}; // x offset from Position
+    int8_t oy{0}; // y offset from Position
+};
+
 struct Camera {
     int16_t x{0};
     int16_t y{0};

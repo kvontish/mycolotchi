@@ -46,6 +46,20 @@ inline void sleepIfInactive() {
     M5.Display.setBrightness(brightness);
 }
 
+inline void renderHitboxes(entt::registry &registry) {
+    const auto &camera = registry.ctx<Camera>();
+    auto &canvas = registry.ctx<M5Canvas>();
+
+    registry.view<Position, Sprite>().each([&](entt::entity e, const Position &pos, const Sprite &sprite) {
+        int16_t sx = pos.x - camera.x;
+        int16_t sy = pos.y - camera.y;
+        //canvas.drawRect(sx, sy, sprite.w, sprite.h, TFT_CYAN);
+
+        if (const Hitbox *hb = registry.try_get<Hitbox>(e))
+            canvas.drawRect(sx + hb->ox, sy + hb->oy, hb->w, hb->h, TFT_WHITE);
+    });
+}
+
 inline void showDebugOverlay(entt::registry &registry) {
     static uint32_t lastCheck = 0;
     static uint16_t fps = 0;
@@ -138,9 +152,10 @@ spawn(entt::registry &registry, int16_t &nextSpawnX, AnimationSet *coinAnimSet, 
     registry.emplace<Despawnable>(e);
 
     if (random(2) == 0) {
-        registry.emplace<Position>(e, spawnEdge, 74); // bottom capped at groundY - obstacleH
+        registry.emplace<Position>(e, spawnEdge, int16_t(74)); // bottom capped at groundY - obstacleH
         registry.emplace<Obstacle>(e);
         registry.emplace<Sprite>(e, obstacleAnimSet->w, obstacleAnimSet->h, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<Hitbox>(e, uint16_t(16), uint16_t(14), int8_t(5), int8_t(6));
         registry.emplace<AnimationState>(e, obstacleAnimSet);
     } else {
         registry.emplace<Position>(e, spawnEdge, (int16_t)random(70, 88)); // bottom capped at groundY - coinH
@@ -165,15 +180,24 @@ inline void despawn(entt::registry &registry) {
         registry.destroy(e);
 }
 
+static void getBounds(const Position &pos, const Sprite &sprite, const Hitbox *hb,
+                      int16_t &x, int16_t &y, int16_t &w, int16_t &h) {
+    if (hb) { x = pos.x + hb->ox; y = pos.y + hb->oy; w = hb->w; h = hb->h; }
+    else     { x = pos.x;          y = pos.y;           w = sprite.w; h = sprite.h; }
+}
+
 inline void checkCollisions(entt::registry &registry, Scene *onHit) {
     auto players = registry.view<Player, Position, Sprite>();
     auto obstacles = registry.view<Obstacle, Position, Sprite>();
 
     bool hit = false;
-    players.each([&](const Position &pp, const Sprite &ps) {
-        obstacles.each([&](const Position &op, const Sprite &os) {
-            if (pp.x < op.x + (int16_t)os.w && pp.x + (int16_t)ps.w > op.x && pp.y < op.y + (int16_t)os.h &&
-                pp.y + (int16_t)ps.h > op.y)
+    players.each([&](entt::entity pe, const Position &pp, const Sprite &ps) {
+        int16_t px, py, pw, ph;
+        getBounds(pp, ps, registry.try_get<Hitbox>(pe), px, py, pw, ph);
+        obstacles.each([&](entt::entity oe, const Position &op, const Sprite &os) {
+            int16_t ox, oy, ow, oh;
+            getBounds(op, os, registry.try_get<Hitbox>(oe), ox, oy, ow, oh);
+            if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy)
                 hit = true;
         });
     });
@@ -187,10 +211,13 @@ inline void collectCoins(entt::registry &registry) {
     auto coins = registry.view<Coin, Position, Sprite>();
 
     std::vector<entt::entity> collected;
-    players.each([&](const Position &pp, const Sprite &ps) {
+    players.each([&](entt::entity pe, const Position &pp, const Sprite &ps) {
+        int16_t px, py, pw, ph;
+        getBounds(pp, ps, registry.try_get<Hitbox>(pe), px, py, pw, ph);
         coins.each([&](entt::entity coin, const Position &cp, const Sprite &cs) {
-            if (pp.x < cp.x + (int16_t)cs.w && pp.x + (int16_t)ps.w > cp.x && pp.y < cp.y + (int16_t)cs.h &&
-                pp.y + (int16_t)ps.h > cp.y)
+            int16_t cx, cy, cw, ch;
+            getBounds(cp, cs, registry.try_get<Hitbox>(coin), cx, cy, cw, ch);
+            if (px < cx + cw && px + pw > cx && py < cy + ch && py + ph > cy)
                 collected.push_back(coin);
         });
     });
