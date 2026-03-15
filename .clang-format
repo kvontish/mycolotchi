@@ -22,5 +22,7 @@ AllowShortLambdasOnASingleLine: All
 LambdaBodyIndentation: OuterScope
 ColumnLimit: 120
 AlignAfterOpenBracket: Align
+AllowAllParametersOfDeclarationOnNextLine: false
 BinPackArguments: false
 BinPackParameters: false
+PenaltyReturnTypeOnItsOwnLine: 10000
