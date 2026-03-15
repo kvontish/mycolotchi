@@ -13,6 +13,7 @@ class GameScene : public Scene {
     AnimationSet *mCoinAnimSet{nullptr};
     AnimationSet *mObstacleAnimSet{nullptr};
     M5Canvas *mBgSprite{nullptr};
+    M5Canvas *mMidSprite{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -42,6 +43,16 @@ class GameScene : public Scene {
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
         registry.emplace<Sprite>(bg, bgW, bgH, uint16_t(TFT_TRANSPARENT), mBgSprite);
         registry.emplace<Tiled>(bg, true, false);
+
+        uint16_t midW, midH;
+        mMidSprite = loadSpriteFromSD(
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120.png",
+            midW, midH);
+        auto mid = registry.create();
+        registry.emplace<Midground>(mid);
+        registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
+        registry.emplace<Sprite>(mid, midW, midH, uint16_t(TFT_TRANSPARENT), mMidSprite);
+        registry.emplace<Tiled>(mid, true, false);
 
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(100));
@@ -121,6 +132,7 @@ class GameScene : public Scene {
         freeAnimationSet(mCoinAnimSet);
         freeAnimationSet(mObstacleAnimSet);
         freeSprite(mBgSprite);
+        freeSprite(mMidSprite);
         registry.clear();
     }
 

@@ -305,7 +305,10 @@ inline void render(entt::registry &registry) {
     registry.view<Background, Position, Sprite>().each(
         [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
 
-    registry.view<Position, Sprite>(entt::exclude<Background>).each(
+    registry.view<Midground, Position, Sprite>().each(
+        [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
+
+    registry.view<Position, Sprite>(entt::exclude<Background, Midground>).each(
         [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
 
     auto labelView = registry.view<Position, Label>();

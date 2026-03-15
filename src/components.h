@@ -74,6 +74,7 @@ struct Velocity {
 // --- Tags ---
 struct Background {};
 struct CameraTarget {};
+struct Midground {};
 struct Coin {};
 struct Despawnable {};
 struct Gravity {};
