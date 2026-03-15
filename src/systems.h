@@ -277,30 +277,36 @@ inline void renderTiled(const Tiled &tiled,
             drawSprite(canvas, sprite, tx, ty);
 }
 
+inline void drawEntity(entt::registry &registry, const Camera &camera, M5Canvas &canvas,
+                       entt::entity entity, const Position &pos, const Sprite &sprite) {
+    int16_t baseX = pos.x - (int16_t)(camera.x * pos.parallax);
+    int16_t baseY = pos.y - (int16_t)(camera.y * pos.parallax);
+
+    const Tiled *tiled = registry.try_get<Tiled>(entity);
+    if (tiled) {
+        renderTiled(*tiled, sprite, baseX, baseY, camera.w, camera.h, canvas);
+        return;
+    }
+
+    if (baseX + sprite.w <= 0 || baseX >= camera.w)
+        return;
+    if (baseY + sprite.h <= 0 || baseY >= camera.h)
+        return;
+
+    drawSprite(canvas, sprite, baseX, baseY);
+}
+
 inline void render(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
     auto &canvas = registry.ctx<M5Canvas>();
 
     canvas.clear();
 
-    auto view = registry.view<Position, Sprite>();
-    view.each([&registry, &camera, &canvas](entt::entity entity, const Position &pos, const Sprite &sprite) {
-        int16_t baseX = pos.x - (int16_t)(camera.x * pos.parallax);
-        int16_t baseY = pos.y - (int16_t)(camera.y * pos.parallax);
+    registry.view<Background, Position, Sprite>().each(
+        [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
 
-        const Tiled *tiled = registry.try_get<Tiled>(entity);
-        if (tiled) {
-            renderTiled(*tiled, sprite, baseX, baseY, camera.w, camera.h, canvas);
-            return;
-        }
-
-        if (baseX + sprite.w <= 0 || baseX >= camera.w)
-            return;
-        if (baseY + sprite.h <= 0 || baseY >= camera.h)
-            return;
-
-        drawSprite(canvas, sprite, baseX, baseY);
-    });
+    registry.view<Position, Sprite>(entt::exclude<Background>).each(
+        [&](entt::entity e, const Position &pos, const Sprite &sprite) { drawEntity(registry, camera, canvas, e, pos, sprite); });
 
     auto labelView = registry.view<Position, Label>();
     labelView.each([&canvas](const Position &pos, const Label &label) {

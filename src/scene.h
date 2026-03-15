@@ -77,6 +77,13 @@ struct Scene {
         free(set);
         set = nullptr;
     }
+
+    static void freeSprite(M5Canvas *&canvas) {
+        if (!canvas) return;
+        canvas->deleteSprite();
+        delete canvas;
+        canvas = nullptr;
+    }
 };
 
 struct SceneManager {

@@ -12,6 +12,7 @@ class GameScene : public Scene {
     AnimationSet *mPlayerAnimSet{nullptr};
     AnimationSet *mCoinAnimSet{nullptr};
     AnimationSet *mObstacleAnimSet{nullptr};
+    M5Canvas *mBgSprite{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -31,6 +32,16 @@ class GameScene : public Scene {
         mNextSpawnX = 200;
         registry.set<Score>();
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameScene::onButton>(this);
+
+        uint16_t bgW, bgH;
+        mBgSprite = loadSpriteFromSD(
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120.png",
+            bgW, bgH);
+        auto bg = registry.create();
+        registry.emplace<Background>(bg);
+        registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
+        registry.emplace<Sprite>(bg, bgW, bgH, uint16_t(TFT_TRANSPARENT), mBgSprite);
+        registry.emplace<Tiled>(bg, true, false);
 
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(100));
@@ -109,6 +120,7 @@ class GameScene : public Scene {
         freeAnimationSet(mPlayerAnimSet);
         freeAnimationSet(mCoinAnimSet);
         freeAnimationSet(mObstacleAnimSet);
+        freeSprite(mBgSprite);
         registry.clear();
     }
 
