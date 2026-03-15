@@ -51,7 +51,7 @@ void loop() {
     sleepIfInactive();
     registry.ctx<SceneManager>().update(registry);
     render(registry);
-    //renderHitboxes(registry);
+    // renderHitboxes(registry);
     showDebugOverlay(registry);
     present(registry);
 }

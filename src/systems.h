@@ -286,6 +286,8 @@ inline void render(entt::registry &registry) {
 
     canvas.clear();
 
+    // Entities are drawn in reverse creation order — later-created entities appear behind earlier ones.
+    // Z-order is controlled by the order entities are created in each scene's load().
     auto view = registry.view<Position, Sprite>();
     std::for_each(view.rbegin(), view.rend(), [&](entt::entity e) {
         drawEntity(registry, camera, canvas, e, view.get<Position>(e), view.get<Sprite>(e));
@@ -354,39 +356,34 @@ inline void showDebugOverlay(entt::registry &registry) {
     }
 }
 
-inline void pushScaled(M5Canvas &canvas, uint16_t srcW, uint16_t srcH, uint8_t scale) {
-    const int32_t dstX = (M5.Display.width() - srcW * scale) / 2;
-    const int32_t dstY = (M5.Display.height() - srcH * scale) / 2;
+inline void present(entt::registry &registry) {
+    const auto &camera = registry.ctx<Camera>();
+    auto &canvas = registry.ctx<M5Canvas>();
 
+    const int32_t dstX = (M5.Display.width() - camera.w * camera.scale) / 2;
+    const int32_t dstY = (M5.Display.height() - camera.h * camera.scale) / 2;
     const uint16_t *src = static_cast<const uint16_t *>(canvas.getBuffer());
 
     static uint16_t rowBuf[320]; // one scaled row, bounded by display width
 
     M5.Display.startWrite();
-    M5.Display.setWindow(dstX, dstY, dstX + srcW * scale - 1, dstY + srcH * scale - 1);
+    M5.Display.setWindow(dstX, dstY, dstX + camera.w * camera.scale - 1, dstY + camera.h * camera.scale - 1);
 
-    for (uint16_t sy = 0; sy < srcH; sy++) {
-        const uint16_t *srcRow = src + sy * srcW;
+    for (uint16_t sy = 0; sy < camera.h; sy++) {
+        const uint16_t *srcRow = src + sy * camera.w;
 
         // Expand each pixel horizontally by `scale`
         uint16_t *p = rowBuf;
-        for (uint16_t sx = 0; sx < srcW; sx++) {
+        for (uint16_t sx = 0; sx < camera.w; sx++) {
             uint16_t px = srcRow[sx];
-            for (uint8_t s = 0; s < scale; s++)
+            for (uint8_t s = 0; s < camera.scale; s++)
                 *p++ = px;
         }
 
         // Repeat the same expanded row `scale` times for vertical scaling
-        for (uint8_t s = 0; s < scale; s++)
-            M5.Display.writePixels(rowBuf, srcW * scale);
+        for (uint8_t s = 0; s < camera.scale; s++)
+            M5.Display.writePixels(rowBuf, camera.w * camera.scale);
     }
 
     M5.Display.endWrite();
-}
-
-inline void present(entt::registry &registry) {
-    const auto &camera = registry.ctx<Camera>();
-    auto &canvas = registry.ctx<M5Canvas>();
-
-    pushScaled(canvas, camera.w, camera.h, camera.scale);
 }

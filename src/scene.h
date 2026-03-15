@@ -46,9 +46,11 @@ struct Scene {
 
     // Loads multiple PNGs from the SD card into a heap-allocated Animation.
     // outW and outH are set from the first frame. Caller must free via freeAnimationSet().
-    static Animation loadAnimationFromSD(const char * const *paths, uint8_t count,
-                                          uint16_t frameDurationMs,
-                                          uint16_t &outW, uint16_t &outH) {
+    static Animation loadAnimationFromSD(const char *const *paths,
+                                         uint8_t count,
+                                         uint16_t frameDurationMs,
+                                         uint16_t &outW,
+                                         uint16_t &outH) {
         M5Canvas **frames = (M5Canvas **)malloc(count * sizeof(M5Canvas *));
         outW = 0;
         outH = 0;
@@ -64,7 +66,8 @@ struct Scene {
     }
 
     static void freeAnimationSet(AnimationSet *&set) {
-        if (!set) return;
+        if (!set)
+            return;
         for (uint8_t i = 0; i < set->animationCount; i++) {
             Animation &anim = set->animations[i];
             for (uint8_t f = 0; f < anim.frameCount; f++) {
@@ -79,7 +82,8 @@ struct Scene {
     }
 
     static void freeSprite(M5Canvas *&canvas) {
-        if (!canvas) return;
+        if (!canvas)
+            return;
         canvas->deleteSprite();
         delete canvas;
         canvas = nullptr;

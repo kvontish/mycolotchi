@@ -36,9 +36,8 @@ class GameScene : public Scene {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameScene::onButton>(this);
 
         uint16_t bgW, bgH;
-        mBgSprite = loadSpriteFromSD(
-            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120.png",
-            bgW, bgH);
+        mBgSprite =
+            loadSpriteFromSD("/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120.png", bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
         registry.emplace<Sprite>(bg, bgW, bgH, mBgSprite);
@@ -46,8 +45,7 @@ class GameScene : public Scene {
 
         uint16_t midW, midH;
         mMidSprite = loadSpriteFromSD(
-            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120.png",
-            midW, midH);
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120.png", midW, midH);
         auto mid = registry.create();
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
         registry.emplace<Sprite>(mid, midW, midH, mMidSprite);
@@ -55,11 +53,10 @@ class GameScene : public Scene {
 
         uint16_t groundW, groundH;
         mGroundSprite = loadSpriteFromSD(
-            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120.png",
-            groundW, groundH);
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120.png", groundW, groundH);
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(90));
-        registry.emplace<Sprite>(ground, groundW, uint16_t(30), mGroundSprite);
+        registry.emplace<Sprite>(ground, groundW, groundH, mGroundSprite);
         registry.emplace<Hitbox>(ground, uint16_t(0), uint16_t(0), int8_t(0), int8_t(6));
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
