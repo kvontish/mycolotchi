@@ -9,6 +9,7 @@
 class GameScene : public Scene {
     entt::registry *mRegistry{nullptr};
     int16_t mNextSpawnX{200};
+    AnimationSet *mPlayerAnimSet{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -49,16 +50,18 @@ class GameScene : public Scene {
         };
 
         uint16_t pw = 32, ph = 32;
-        AnimationClip *clips = (AnimationClip *)malloc(2 * sizeof(AnimationClip));
-        clips[0] = loadAnimationClipFromSD(runPaths, 6, 100, pw, ph);
-        clips[1] = loadAnimationClipFromSD(jumpPaths, 2, 150, pw, ph);
-        clips[1].loop = false;
+        Animation *anims = (Animation *)malloc(2 * sizeof(Animation));
+        anims[0] = loadAnimationFromSD(runPaths, 6, 100, pw, ph);
+        anims[1] = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
+        anims[1].loop = false;
+        mPlayerAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *mPlayerAnimSet = {anims, 2};
 
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, pw, ph, uint16_t(TFT_TRANSPARENT));
-        registry.emplace<Animation>(player, clips, uint8_t(2));
+        registry.emplace<Sprite>(player, pw, ph, uint16_t(TFT_TRANSPARENT), nullptr, false);
+        registry.emplace<AnimationState>(player, mPlayerAnimSet);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
@@ -75,7 +78,17 @@ class GameScene : public Scene {
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
         mRegistry = nullptr;
-        freeSprites(registry);
+        if (mPlayerAnimSet) {
+            for (uint8_t i = 0; i < mPlayerAnimSet->animationCount; i++) {
+                Animation &anim = mPlayerAnimSet->animations[i];
+                for (uint8_t f = 0; f < anim.frameCount; f++)
+                    free(anim.frames[f]);
+                free(anim.frames);
+            }
+            free(mPlayerAnimSet->animations);
+            free(mPlayerAnimSet);
+            mPlayerAnimSet = nullptr;
+        }
         registry.clear();
     }
 

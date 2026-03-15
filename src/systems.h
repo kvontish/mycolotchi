@@ -197,45 +197,27 @@ inline void collectCoins(entt::registry &registry) {
     }
 }
 
-inline void freeSprites(entt::registry &registry) {
-    registry.view<Sprite>().each([&registry](entt::entity e, Sprite &sprite) {
-        if (registry.all_of<Animation>(e)) {
-            Animation &anim = registry.get<Animation>(e);
-            for (uint8_t c = 0; c < anim.clipCount; c++) {
-                for (uint8_t f = 0; f < anim.clips[c].frameCount; f++)
-                    free(anim.clips[c].frames[f]);
-                free(anim.clips[c].frames);
-            }
-            free(anim.clips);
-            anim.clips = nullptr;
-        } else if (sprite.data) {
-            free(const_cast<uint16_t *>(sprite.data));
-            sprite.data = nullptr;
-        }
-    });
-}
-
 inline void animateSprites(entt::registry &registry) {
     uint32_t now = millis();
-    registry.view<Animation, Sprite>().each([now](Animation &anim, Sprite &sprite) {
-        const AnimationClip &clip = anim.clips[anim.currentClip];
-        if (now - anim.lastFrameMs >= clip.frameDurationMs) {
-            if (clip.loop || anim.currentFrame + 1 < clip.frameCount)
-                anim.currentFrame = (anim.currentFrame + 1) % clip.frameCount;
-            anim.lastFrameMs = now;
+    registry.view<AnimationState, Sprite>().each([now](AnimationState &state, Sprite &sprite) {
+        const Animation &anim = state.set->animations[state.currentAnimation];
+        if (now - state.lastFrameMs >= anim.frameDurationMs) {
+            if (anim.loop || state.currentFrame + 1 < anim.frameCount)
+                state.currentFrame = (state.currentFrame + 1) % anim.frameCount;
+            state.lastFrameMs = now;
         }
-        sprite.data = clip.frames[anim.currentFrame];
+        sprite.data = anim.frames[state.currentFrame];
     });
 }
 
-// Switches the player between clip 0 (grounded) and clip 1 (airborne)
+// Switches the player between animation 0 (grounded) and animation 1 (airborne)
 inline void updatePlayerAnimation(entt::registry &registry) {
-    registry.view<Player, Animation>().each([&registry](entt::entity e, Animation &anim) {
+    registry.view<Player, AnimationState>().each([&registry](entt::entity e, AnimationState &state) {
         uint8_t desired = registry.all_of<Grounded>(e) ? 0 : 1;
-        if (anim.currentClip != desired) {
-            anim.currentClip = desired;
-            anim.currentFrame = 0;
-            anim.lastFrameMs = millis();
+        if (state.currentAnimation != desired) {
+            state.currentAnimation = desired;
+            state.currentFrame = 0;
+            state.lastFrameMs = millis();
         }
     });
 }

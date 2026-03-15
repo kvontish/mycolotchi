@@ -53,9 +53,9 @@ struct Scene {
 
     // Loads multiple PNGs from the SD card into a heap-allocated AnimationClip.
     // outW and outH are set from the first frame. Caller must free via freeAnimations().
-    static AnimationClip loadAnimationClipFromSD(const char * const *paths, uint8_t count,
-                                                  uint16_t frameDurationMs,
-                                                  uint16_t &outW, uint16_t &outH) {
+    static Animation loadAnimationFromSD(const char * const *paths, uint8_t count,
+                                          uint16_t frameDurationMs,
+                                          uint16_t &outW, uint16_t &outH) {
         uint16_t **frames = (uint16_t **)malloc(count * sizeof(uint16_t *));
         outW = 0;
         outH = 0;

@@ -2,17 +2,21 @@
 
 #include <M5Unified.h>
 
-struct AnimationClip {
+struct Animation {
     uint16_t **frames{nullptr}; // heap-allocated array of decoded frame buffers
     uint8_t frameCount{0};
     uint16_t frameDurationMs{100};
     bool loop{true};
 };
 
-struct Animation {
-    AnimationClip *clips{nullptr}; // heap-allocated array of clips, indexed by state
-    uint8_t clipCount{0};
-    uint8_t currentClip{0};
+struct AnimationSet {
+    Animation *animations{nullptr}; // heap-allocated array of animations, indexed by state; owned by the scene
+    uint8_t animationCount{0};
+};
+
+struct AnimationState {
+    AnimationSet *set{nullptr}; // borrowed; owned and freed by the scene
+    uint8_t currentAnimation{0};
     uint8_t currentFrame{0};
     uint32_t lastFrameMs{0};
 };
