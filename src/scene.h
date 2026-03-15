@@ -69,6 +69,19 @@ struct Scene {
         }
         return {frames, count, frameDurationMs};
     }
+
+    static void freeAnimationSet(AnimationSet *&set) {
+        if (!set) return;
+        for (uint8_t i = 0; i < set->animationCount; i++) {
+            Animation &anim = set->animations[i];
+            for (uint8_t f = 0; f < anim.frameCount; f++)
+                free(anim.frames[f]);
+            free(anim.frames);
+        }
+        free(set->animations);
+        free(set);
+        set = nullptr;
+    }
 };
 
 struct SceneManager {

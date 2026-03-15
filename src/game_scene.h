@@ -10,6 +10,7 @@ class GameScene : public Scene {
     entt::registry *mRegistry{nullptr};
     int16_t mNextSpawnX{200};
     AnimationSet *mPlayerAnimSet{nullptr};
+    AnimationSet *mCoinAnimSet{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -57,6 +58,19 @@ class GameScene : public Scene {
         mPlayerAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
         *mPlayerAnimSet = {anims, 2};
 
+        static const char *gemPaths[] = {
+            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-1.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-2.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-3.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-4.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-5.png",
+        };
+        uint16_t gw, gh;
+        Animation *coinAnims = (Animation *)malloc(sizeof(Animation));
+        coinAnims[0] = loadAnimationFromSD(gemPaths, 5, 100, gw, gh);
+        mCoinAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *mCoinAnimSet = {coinAnims, 1};
+
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
@@ -78,17 +92,8 @@ class GameScene : public Scene {
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
         mRegistry = nullptr;
-        if (mPlayerAnimSet) {
-            for (uint8_t i = 0; i < mPlayerAnimSet->animationCount; i++) {
-                Animation &anim = mPlayerAnimSet->animations[i];
-                for (uint8_t f = 0; f < anim.frameCount; f++)
-                    free(anim.frames[f]);
-                free(anim.frames);
-            }
-            free(mPlayerAnimSet->animations);
-            free(mPlayerAnimSet);
-            mPlayerAnimSet = nullptr;
-        }
+        freeAnimationSet(mPlayerAnimSet);
+        freeAnimationSet(mCoinAnimSet);
         registry.clear();
     }
 
@@ -99,7 +104,7 @@ class GameScene : public Scene {
         updatePlayerAnimation(registry);
         animateSprites(registry);
         checkCollisions(registry, &gameOverScene);
-        spawn(registry, mNextSpawnX);
+        spawn(registry, mNextSpawnX, mCoinAnimSet);
         despawn(registry);
         collectCoins(registry);
         moveCamera(registry);
