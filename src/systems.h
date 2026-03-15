@@ -3,11 +3,11 @@
 #include "components.h"
 #include "events.h"
 #include "scene.h"
-#include <M5Unified.h>
+#include <algorithm>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <esp_sleep.h>
-#include <algorithm>
+#include <M5Unified.h>
 #include <vector>
 
 static uint32_t sLastActivityMs = 0;
