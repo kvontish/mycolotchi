@@ -49,4 +49,5 @@ struct Sprite {
     uint16_t w{0};
     uint16_t h{0};
     uint16_t color{TFT_TRANSPARENT};
+    const uint16_t *data{nullptr}; // decoded RGB565 pixels, row-major; nullptr falls back to color
 };

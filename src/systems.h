@@ -197,6 +197,13 @@ inline void collectCoins(entt::registry &registry) {
     }
 }
 
+inline void drawSprite(M5Canvas &canvas, const Sprite &sprite, int16_t x, int16_t y) {
+    if (sprite.color != TFT_TRANSPARENT)
+        canvas.fillRect(x, y, sprite.w, sprite.h, sprite.color);
+    if (sprite.data)
+        canvas.pushImage(x, y, sprite.w, sprite.h, sprite.data);
+}
+
 inline void renderTiled(const Tiled &tiled,
                         const Sprite &sprite,
                         int16_t baseX,
@@ -211,7 +218,7 @@ inline void renderTiled(const Tiled &tiled,
 
     for (int16_t ty = startY; ty < endY; ty += sprite.h)
         for (int16_t tx = startX; tx < endX; tx += sprite.w)
-            canvas.fillRect(tx, ty, sprite.w, sprite.h, sprite.color);
+            drawSprite(canvas, sprite, tx, ty);
 }
 
 inline void render(entt::registry &registry) {
@@ -236,7 +243,7 @@ inline void render(entt::registry &registry) {
         if (baseY + sprite.h <= 0 || baseY >= camera.h)
             return;
 
-        canvas.fillRect(baseX, baseY, sprite.w, sprite.h, sprite.color);
+        drawSprite(canvas, sprite, baseX, baseY);
     });
 
     auto labelView = registry.view<Position, Label>();
