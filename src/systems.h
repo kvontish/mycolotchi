@@ -97,11 +97,11 @@ inline void moveCamera(entt::registry &registry) {
     });
 }
 
-inline void spawn(entt::registry &registry,
-                  int16_t &nextSpawnX,
-                  AnimationSet *coinAnimSet,
-                  AnimationSet *obstacleAnimSet) {
+inline void spawn(entt::registry &registry, int16_t &nextSpawnX) {
     const auto &camera = registry.ctx<Camera>();
+    const auto &lib = registry.ctx<AssetLibrary>();
+    AnimationSet *coinAnimSet = lib.animSets[CoinAnim];
+    AnimationSet *obstacleAnimSet = lib.animSets[ObstacleAnim];
     int16_t spawnEdge = camera.x + (int16_t)camera.w;
 
     if (spawnEdge < nextSpawnX)

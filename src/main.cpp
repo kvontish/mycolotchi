@@ -37,6 +37,7 @@ void setup() {
     xTaskCreatePinnedToCore(inputTask, "input", 2048, nullptr, 1, nullptr, 0);
 
     registry.set<entt::dispatcher>();
+    registry.set<AssetLibrary>();
     registry.set<Camera>();
     const auto &camera = registry.ctx<Camera>();
 

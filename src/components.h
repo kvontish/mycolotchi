@@ -23,11 +23,10 @@ struct AnimationState {
     uint32_t lastFrameMs{0};
 };
 
-struct Hitbox {
-    uint16_t w{0};
-    uint16_t h{0};
-    int8_t ox{0}; // x offset from Position
-    int8_t oy{0}; // y offset from Position
+struct AssetLibrary {
+    static constexpr uint8_t kMax = 8;
+    AnimationSet *animSets[kMax]{};
+    M5Canvas *sprites[kMax]{};
 };
 
 struct Camera {
@@ -36,6 +35,16 @@ struct Camera {
     uint16_t w{160};
     uint16_t h{120};
     uint8_t scale{2};
+};
+
+enum GameAnimationId : uint8_t { PlayerAnim, CoinAnim, ObstacleAnim };
+enum GameSpriteId : uint8_t { BgSprite, MidSprite, GroundSprite };
+
+struct Hitbox {
+    uint16_t w{0};
+    uint16_t h{0};
+    int8_t ox{0}; // x offset from Position
+    int8_t oy{0}; // y offset from Position
 };
 
 struct Label {

@@ -9,12 +9,6 @@
 class GameScene : public Scene {
     entt::registry *mRegistry{nullptr};
     int16_t mNextSpawnX{200};
-    AnimationSet *mPlayerAnimSet{nullptr};
-    AnimationSet *mCoinAnimSet{nullptr};
-    AnimationSet *mObstacleAnimSet{nullptr};
-    M5Canvas *mBgSprite{nullptr};
-    M5Canvas *mMidSprite{nullptr};
-    M5Canvas *mGroundSprite{nullptr};
 
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
@@ -35,28 +29,30 @@ class GameScene : public Scene {
         registry.set<Score>();
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameScene::onButton>(this);
 
+        auto &lib = registry.ctx<AssetLibrary>();
+
         uint16_t bgW, bgH;
-        mBgSprite =
+        lib.sprites[BgSprite] =
             loadSpriteFromSD("/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120.png", bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
-        registry.emplace<Sprite>(bg, bgW, bgH, mBgSprite);
+        registry.emplace<Sprite>(bg, bgW, bgH, lib.sprites[BgSprite]);
         registry.emplace<Tiled>(bg, true, false);
 
         uint16_t midW, midH;
-        mMidSprite = loadSpriteFromSD(
+        lib.sprites[MidSprite] = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120.png", midW, midH);
         auto mid = registry.create();
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
-        registry.emplace<Sprite>(mid, midW, midH, mMidSprite);
+        registry.emplace<Sprite>(mid, midW, midH, lib.sprites[MidSprite]);
         registry.emplace<Tiled>(mid, true, false);
 
         uint16_t groundW, groundH;
-        mGroundSprite = loadSpriteFromSD(
+        lib.sprites[GroundSprite] = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120.png", groundW, groundH);
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(90));
-        registry.emplace<Sprite>(ground, groundW, groundH, mGroundSprite);
+        registry.emplace<Sprite>(ground, groundW, groundH, lib.sprites[GroundSprite]);
         registry.emplace<Hitbox>(ground, uint16_t(0), uint16_t(0), int8_t(0), int8_t(6));
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
@@ -79,8 +75,8 @@ class GameScene : public Scene {
         anims[0] = loadAnimationFromSD(runPaths, 6, 100, pw, ph);
         anims[1] = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
         anims[1].loop = false;
-        mPlayerAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *mPlayerAnimSet = {anims, 2, pw, ph};
+        lib.animSets[PlayerAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *lib.animSets[PlayerAnim] = {anims, 2, pw, ph};
 
         static const char *gemPaths[] = {
             "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-1.png",
@@ -92,8 +88,8 @@ class GameScene : public Scene {
         uint16_t gw, gh;
         Animation *coinAnims = (Animation *)malloc(sizeof(Animation));
         coinAnims[0] = loadAnimationFromSD(gemPaths, 5, 100, gw, gh);
-        mCoinAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *mCoinAnimSet = {coinAnims, 1, gw, gh};
+        lib.animSets[CoinAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *lib.animSets[CoinAnim] = {coinAnims, 1, gw, gh};
 
         static const char *fireballPaths[] = {
             "/Props Items and VFX/fireball/Sprites/fireball-1.png",
@@ -105,15 +101,15 @@ class GameScene : public Scene {
         uint16_t fw, fh;
         Animation *obstacleAnims = (Animation *)malloc(sizeof(Animation));
         obstacleAnims[0] = loadAnimationFromSD(fireballPaths, 5, 80, fw, fh);
-        mObstacleAnimSet = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *mObstacleAnimSet = {obstacleAnims, 1, fw, fh};
+        lib.animSets[ObstacleAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *lib.animSets[ObstacleAnim] = {obstacleAnims, 1, fw, fh};
 
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(68));
-        registry.emplace<Sprite>(player, mPlayerAnimSet->w, mPlayerAnimSet->h);
+        registry.emplace<Sprite>(player, lib.animSets[PlayerAnim]->w, lib.animSets[PlayerAnim]->h);
         registry.emplace<Hitbox>(player, uint16_t(20), uint16_t(20), int8_t(5), int8_t(9));
-        registry.emplace<AnimationState>(player, mPlayerAnimSet);
+        registry.emplace<AnimationState>(player, lib.animSets[PlayerAnim]);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
@@ -130,12 +126,11 @@ class GameScene : public Scene {
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
         mRegistry = nullptr;
-        freeAnimationSet(mPlayerAnimSet);
-        freeAnimationSet(mCoinAnimSet);
-        freeAnimationSet(mObstacleAnimSet);
-        freeSprite(mBgSprite);
-        freeSprite(mMidSprite);
-        freeSprite(mGroundSprite);
+        auto &lib = registry.ctx<AssetLibrary>();
+        for (auto &a : lib.animSets)
+            freeAnimationSet(a);
+        for (auto &s : lib.sprites)
+            freeSprite(s);
         registry.clear();
     }
 
@@ -146,7 +141,7 @@ class GameScene : public Scene {
         updatePlayerAnimation(registry);
         animateSprites(registry);
         checkCollisions(registry, &gameOverScene);
-        spawn(registry, mNextSpawnX, mCoinAnimSet, mObstacleAnimSet);
+        spawn(registry, mNextSpawnX);
         despawn(registry);
         collectCoins(registry);
         moveCamera(registry);
