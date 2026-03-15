@@ -228,6 +228,8 @@ inline void collectCoins(entt::registry &registry) {
     for (auto e : collected) {
         registry.destroy(e);
         registry.ctx<Score>().value++;
+        M5.Speaker.tone(900,  60, 0, true);  // lower note
+        M5.Speaker.tone(1400, 80, 0, false); // higher note, queued after
     }
 }
 
