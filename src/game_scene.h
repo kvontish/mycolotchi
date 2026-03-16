@@ -33,7 +33,7 @@ class GameScene : public Scene {
 
         uint16_t bgW, bgH;
         lib.sprites[BgSprite] =
-            loadSpriteFromSD("/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120.png", bgW, bgH);
+            loadSpriteFromSD("/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120-cc.png", bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
         registry.emplace<Sprite>(bg, bgW, bgH, lib.sprites[BgSprite]);
@@ -41,7 +41,7 @@ class GameScene : public Scene {
 
         uint16_t midW, midH;
         lib.sprites[MidSprite] = loadSpriteFromSD(
-            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120.png", midW, midH);
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120-cc.png", midW, midH);
         auto mid = registry.create();
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
         registry.emplace<Sprite>(mid, midW, midH, lib.sprites[MidSprite]);
@@ -49,7 +49,7 @@ class GameScene : public Scene {
 
         uint16_t groundW, groundH;
         lib.sprites[GroundSprite] = loadSpriteFromSD(
-            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120.png", groundW, groundH);
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120-cc.png", groundW, groundH);
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(90));
         registry.emplace<Sprite>(ground, groundW, groundH, lib.sprites[GroundSprite]);
@@ -58,16 +58,16 @@ class GameScene : public Scene {
         registry.emplace<Solid>(ground);
 
         static const char *runPaths[] = {
-            "/Characters/Players/Foxy/Sprites/run/player-run-1.png",
-            "/Characters/Players/Foxy/Sprites/run/player-run-2.png",
-            "/Characters/Players/Foxy/Sprites/run/player-run-3.png",
-            "/Characters/Players/Foxy/Sprites/run/player-run-4.png",
-            "/Characters/Players/Foxy/Sprites/run/player-run-5.png",
-            "/Characters/Players/Foxy/Sprites/run/player-run-6.png",
+            "/Characters/Players/Foxy/Sprites/run-cc/player-run-1.png",
+            "/Characters/Players/Foxy/Sprites/run-cc/player-run-2.png",
+            "/Characters/Players/Foxy/Sprites/run-cc/player-run-3.png",
+            "/Characters/Players/Foxy/Sprites/run-cc/player-run-4.png",
+            "/Characters/Players/Foxy/Sprites/run-cc/player-run-5.png",
+            "/Characters/Players/Foxy/Sprites/run-cc/player-run-6.png",
         };
         static const char *jumpPaths[] = {
-            "/Characters/Players/Foxy/Sprites/jump/player-jump-1.png",
-            "/Characters/Players/Foxy/Sprites/jump/player-jump-2.png",
+            "/Characters/Players/Foxy/Sprites/jump-cc/player-jump-1.png",
+            "/Characters/Players/Foxy/Sprites/jump-cc/player-jump-2.png",
         };
 
         uint16_t pw = 32, ph = 32;
@@ -79,11 +79,11 @@ class GameScene : public Scene {
         *lib.animSets[PlayerAnim] = {anims, 2, pw, ph};
 
         static const char *gemPaths[] = {
-            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-1.png",
-            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-2.png",
-            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-3.png",
-            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-4.png",
-            "/Props Items and VFX/Sunnyland items/Sprites/gem/gem-5.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-1.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-2.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-3.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-4.png",
+            "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-5.png",
         };
         uint16_t gw, gh;
         Animation *coinAnims = (Animation *)malloc(sizeof(Animation));
@@ -92,11 +92,11 @@ class GameScene : public Scene {
         *lib.animSets[CoinAnim] = {coinAnims, 1, gw, gh};
 
         static const char *fireballPaths[] = {
-            "/Props Items and VFX/fireball/Sprites/fireball-1.png",
-            "/Props Items and VFX/fireball/Sprites/fireball-2.png",
-            "/Props Items and VFX/fireball/Sprites/fireball-3.png",
-            "/Props Items and VFX/fireball/Sprites/fireball-4.png",
-            "/Props Items and VFX/fireball/Sprites/fireball-5.png",
+            "/Props Items and VFX/fireball-cc/fireball-1.png",
+            "/Props Items and VFX/fireball-cc/fireball-2.png",
+            "/Props Items and VFX/fireball-cc/fireball-3.png",
+            "/Props Items and VFX/fireball-cc/fireball-4.png",
+            "/Props Items and VFX/fireball-cc/fireball-5.png",
         };
         uint16_t fw, fh;
         Animation *obstacleAnims = (Animation *)malloc(sizeof(Animation));
