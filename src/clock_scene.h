@@ -8,10 +8,10 @@
 
 class ClockScene : public Scene {
     entt::registry *mRegistry{nullptr};
-    char mTimeBuf[9]; // "HH:MM:SS\0"
+    char mTimeBuf[9];  // "HH:MM AM\0"
+    char mDateBuf[12]; // "Jan 15 2025\0"
 
     void onButton(const ButtonEvent &e) {
-
         if (e.button == ButtonEvent::Button::C)
             mRegistry->ctx<SceneManager>().transition(prevScene);
     }
@@ -26,9 +26,15 @@ class ClockScene : public Scene {
         const auto &camera = registry.ctx<Camera>();
 
         mTimeBuf[0] = '\0';
+        mDateBuf[0] = '\0';
+
         auto timeLabel = registry.create();
-        registry.emplace<Position>(timeLabel, int16_t(camera.w / 2), int16_t(camera.h / 2));
+        registry.emplace<Position>(timeLabel, int16_t(camera.w / 2), int16_t(45));
         registry.emplace<Label>(timeLabel, (const char *)mTimeBuf, uint16_t(TFT_WHITE), uint8_t(3));
+
+        auto dateLabel = registry.create();
+        registry.emplace<Position>(dateLabel, int16_t(camera.w / 2), int16_t(78));
+        registry.emplace<Label>(dateLabel, (const char *)mDateBuf, uint16_t(TFT_LIGHTGREY), uint8_t(1));
     }
 
     void unload(entt::registry &registry) override {
@@ -40,8 +46,19 @@ class ClockScene : public Scene {
     void update(entt::registry &registry) override {
         pollInput(registry);
 
+        static const char *kMonths[] = {
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
         auto t = M5.Rtc.getTime();
-        snprintf(mTimeBuf, sizeof(mTimeBuf), "%02d:%02d:%02d", t.hours, t.minutes, t.seconds);
+        int8_t h = t.hours;
+        const char *ampm = h >= 12 ? "PM" : "AM";
+        h = h % 12;
+        if (h == 0)
+            h = 12;
+        snprintf(mTimeBuf, sizeof(mTimeBuf), "%02d:%02d %s", h, t.minutes, ampm);
+
+        auto d = M5.Rtc.getDate();
+        snprintf(mDateBuf, sizeof(mDateBuf), "%s %02d %04d", kMonths[d.month - 1], d.date, d.year);
     }
 };
 
