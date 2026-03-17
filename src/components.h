@@ -57,6 +57,8 @@ struct Position {
     int16_t x{0};
     int16_t y{0};
     float parallax{1.0f};
+    int8_t scaleX{1};
+    int8_t scaleY{1};
 };
 
 struct Score {
@@ -88,4 +90,5 @@ struct Gravity {};
 struct Grounded {};
 struct Obstacle {};
 struct Player {};
+struct Shroom {};
 struct Solid {};

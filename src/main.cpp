@@ -1,6 +1,7 @@
 #include "components.h"
 #include "game_over_scene.h"
 #include "game_scene.h"
+#include "home_scene.h"
 #include "scene.h"
 #include "systems.h"
 #include "title_scene.h"
@@ -32,9 +33,6 @@ void setup() {
     Serial.begin(115200);
     SD.begin(4); // M5Core2 SD CS pin
 
-    titleScene.nextScene = &gameScene;
-    gameOverScene.nextScene = &gameScene;
-
     xTaskCreatePinnedToCore(inputTask, "input", 2048, nullptr, 1, nullptr, 0);
 
     registry.set<entt::dispatcher>();
@@ -46,7 +44,7 @@ void setup() {
     registry.ctx<M5Canvas>().createSprite(camera.w, camera.h);
 
     registry.set<SceneManager>();
-    registry.ctx<SceneManager>().transition(&titleScene);
+    registry.ctx<SceneManager>().transition(&homeScene);
 }
 
 void loop() {

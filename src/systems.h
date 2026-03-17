@@ -63,6 +63,8 @@ inline void sleepIfInactive() {
 // Simulation
 // =============================================================================
 
+// --- Physics ---
+
 inline void physics(entt::registry &registry) {
     const int16_t gravity = 1;
 
@@ -96,6 +98,29 @@ inline void groundCheck(entt::registry &registry) {
     });
 }
 
+// --- NPC Behavior ---
+
+// Moves the player horizontally and bounces at a one-sprite-width margin from each camera edge.
+// Also mirrors the sprite to face the direction of travel.
+inline void walkAndBounce(entt::registry &registry) {
+    const auto &camera = registry.ctx<Camera>();
+    registry.view<Shroom, Position, Velocity, Sprite>().each(
+        [&camera](Position &pos, Velocity &vel, const Sprite &sprite) {
+        pos.x += vel.x;
+        const int16_t margin = (int16_t)sprite.w;
+        if (vel.x > 0 && pos.x + (int16_t)sprite.w >= (int16_t)camera.w - margin) {
+            pos.x = (int16_t)camera.w - (int16_t)sprite.w - margin;
+            vel.x = -vel.x;
+        } else if (vel.x < 0 && pos.x <= margin) {
+            pos.x = margin;
+            vel.x = -vel.x;
+        }
+        pos.scaleX = vel.x < 0 ? -1 : 1;
+    });
+}
+
+// --- Camera ---
+
 inline void moveCamera(entt::registry &registry) {
     auto &camera = registry.ctx<Camera>();
     auto view = registry.view<CameraTarget, Position>();
@@ -104,6 +129,8 @@ inline void moveCamera(entt::registry &registry) {
         camera.y = pos.y;
     });
 }
+
+// --- World ---
 
 inline void spawn(entt::registry &registry, int16_t &nextSpawnX) {
     const auto &camera = registry.ctx<Camera>();
@@ -147,6 +174,8 @@ inline void despawn(entt::registry &registry) {
     for (auto e : toDestroy)
         registry.destroy(e);
 }
+
+// --- Game Logic ---
 
 static void getBounds(const Position &pos,
                       const Sprite &sprite,
@@ -212,18 +241,7 @@ inline void collectCoins(entt::registry &registry) {
     }
 }
 
-inline void animateSprites(entt::registry &registry) {
-    uint32_t now = millis();
-    registry.view<AnimationState, Sprite>().each([now](AnimationState &state, Sprite &sprite) {
-        const Animation &anim = state.set->animations[state.currentAnimation];
-        if (now - state.lastFrameMs >= anim.frameDurationMs) {
-            if (anim.loop || state.currentFrame + 1 < anim.frameCount)
-                state.currentFrame = (state.currentFrame + 1) % anim.frameCount;
-            state.lastFrameMs = now;
-        }
-        sprite.data = anim.frames[state.currentFrame];
-    });
-}
+// --- Animation ---
 
 // Switches the player between animation 0 (grounded) and animation 1 (airborne)
 inline void updatePlayerAnimation(entt::registry &registry) {
@@ -237,15 +255,42 @@ inline void updatePlayerAnimation(entt::registry &registry) {
     });
 }
 
+inline void animateSprites(entt::registry &registry) {
+    uint32_t now = millis();
+    registry.view<AnimationState, Sprite>().each([now](AnimationState &state, Sprite &sprite) {
+        const Animation &anim = state.set->animations[state.currentAnimation];
+        if (now - state.lastFrameMs >= anim.frameDurationMs) {
+            if (anim.loop || state.currentFrame + 1 < anim.frameCount)
+                state.currentFrame = (state.currentFrame + 1) % anim.frameCount;
+            state.lastFrameMs = now;
+        }
+        sprite.data = anim.frames[state.currentFrame];
+    });
+}
+
 // =============================================================================
 // Rendering
 // =============================================================================
 
-inline void drawSprite(M5Canvas &canvas, const Sprite &sprite, int16_t x, int16_t y) {
+inline void drawSprite(M5Canvas &canvas,
+                       const Sprite &sprite,
+                       int16_t x,
+                       int16_t y,
+                       int8_t scaleX = 1,
+                       int8_t scaleY = 1) {
     if (sprite.color != TFT_TRANSPARENT)
         canvas.fillRect(x, y, sprite.w, sprite.h, sprite.color);
-    if (sprite.data)
+    if (!sprite.data)
+        return;
+    if (scaleX == 1 && scaleY == 1) {
         sprite.data->pushSprite(&canvas, x, y, TFT_TRANSPARENT);
+    } else {
+        // pushRotateZoom takes the destination center point; use abs(scale) so negative (mirror) scales
+        // don't shift the sprite off its bounding box
+        float cx = x + sprite.w * (scaleX < 0 ? -scaleX : scaleX) * 0.5f;
+        float cy = y + sprite.h * (scaleY < 0 ? -scaleY : scaleY) * 0.5f;
+        sprite.data->pushRotateZoom(&canvas, cx, cy, 0.0f, (float)scaleX, (float)scaleY, (uint16_t)TFT_TRANSPARENT);
+    }
 }
 
 inline void renderTiled(const Tiled &tiled,
@@ -262,7 +307,7 @@ inline void renderTiled(const Tiled &tiled,
 
     for (int16_t ty = startY; ty < endY; ty += sprite.h)
         for (int16_t tx = startX; tx < endX; tx += sprite.w)
-            drawSprite(canvas, sprite, tx, ty);
+            drawSprite(canvas, sprite, tx, ty); // tiled backgrounds are never scaled
 }
 
 inline void drawEntity(entt::registry &registry,
@@ -285,7 +330,7 @@ inline void drawEntity(entt::registry &registry,
     if (baseY + sprite.h <= 0 || baseY >= camera.h)
         return;
 
-    drawSprite(canvas, sprite, baseX, baseY);
+    drawSprite(canvas, sprite, baseX, baseY, pos.scaleX, pos.scaleY);
 }
 
 inline void render(entt::registry &registry) {
@@ -309,6 +354,40 @@ inline void render(entt::registry &registry) {
         canvas.drawString(label.text, pos.x, pos.y);
     });
 }
+
+inline void present(entt::registry &registry) {
+    const auto &camera = registry.ctx<Camera>();
+    auto &canvas = registry.ctx<M5Canvas>();
+
+    const int32_t dstX = (M5.Display.width() - camera.w * camera.scale) / 2;
+    const int32_t dstY = (M5.Display.height() - camera.h * camera.scale) / 2;
+    const uint16_t *src = static_cast<const uint16_t *>(canvas.getBuffer());
+
+    static uint16_t rowBuf[320]; // one scaled row, bounded by display width
+
+    M5.Display.startWrite();
+    M5.Display.setWindow(dstX, dstY, dstX + camera.w * camera.scale - 1, dstY + camera.h * camera.scale - 1);
+
+    for (uint16_t sy = 0; sy < camera.h; sy++) {
+        const uint16_t *srcRow = src + sy * camera.w;
+
+        // Expand each pixel horizontally by `scale`
+        uint16_t *p = rowBuf;
+        for (uint16_t sx = 0; sx < camera.w; sx++) {
+            uint16_t px = srcRow[sx];
+            for (uint8_t s = 0; s < camera.scale; s++)
+                *p++ = px;
+        }
+
+        // Repeat the same expanded row `scale` times for vertical scaling
+        for (uint8_t s = 0; s < camera.scale; s++)
+            M5.Display.writePixels(rowBuf, camera.w * camera.scale);
+    }
+
+    M5.Display.endWrite();
+}
+
+// --- Debug ---
 
 inline void renderHitboxes(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
@@ -362,36 +441,4 @@ inline void showDebugOverlay(entt::registry &registry) {
         canvas.fillRect(x + 14, y + 2, 2, 3, TFT_WHITE);
         canvas.fillRect(x + 1, y + 1, batteryLevel * 12 / 100, 5, color);
     }
-}
-
-inline void present(entt::registry &registry) {
-    const auto &camera = registry.ctx<Camera>();
-    auto &canvas = registry.ctx<M5Canvas>();
-
-    const int32_t dstX = (M5.Display.width() - camera.w * camera.scale) / 2;
-    const int32_t dstY = (M5.Display.height() - camera.h * camera.scale) / 2;
-    const uint16_t *src = static_cast<const uint16_t *>(canvas.getBuffer());
-
-    static uint16_t rowBuf[320]; // one scaled row, bounded by display width
-
-    M5.Display.startWrite();
-    M5.Display.setWindow(dstX, dstY, dstX + camera.w * camera.scale - 1, dstY + camera.h * camera.scale - 1);
-
-    for (uint16_t sy = 0; sy < camera.h; sy++) {
-        const uint16_t *srcRow = src + sy * camera.w;
-
-        // Expand each pixel horizontally by `scale`
-        uint16_t *p = rowBuf;
-        for (uint16_t sx = 0; sx < camera.w; sx++) {
-            uint16_t px = srcRow[sx];
-            for (uint8_t s = 0; s < camera.scale; s++)
-                *p++ = px;
-        }
-
-        // Repeat the same expanded row `scale` times for vertical scaling
-        for (uint8_t s = 0; s < camera.scale; s++)
-            M5.Display.writePixels(rowBuf, camera.w * camera.scale);
-    }
-
-    M5.Display.endWrite();
 }
