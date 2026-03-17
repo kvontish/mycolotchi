@@ -1,5 +1,6 @@
 #pragma once
 
+#include "asset_loader.h"
 #include "components.h"
 #include "scene.h"
 #include "systems.h"
