@@ -1,28 +1,45 @@
 #pragma once
 
-#include "clock_scene.h"
 #include "components.h"
 #include "scene.h"
 #include "systems.h"
 #include <entt/entity/registry.hpp>
 
+// --- Components ---
+
 enum HomeSpriteId : uint8_t { HomeBgSprite, HomeMidSprite, HomeGroundSprite };
 enum HomeAnimId : uint8_t { HomeShroomAnim };
 
-class HomeScene : public Scene {
-    entt::registry *mRegistry{nullptr};
+// --- Systems ---
 
-    void onButton(const ButtonEvent &e) {
-        if (e.button == ButtonEvent::Button::C) {
-            clockScene.prevScene = this;
-            mRegistry->ctx<SceneManager>().transition(&clockScene);
+// Moves the player horizontally and bounces at a one-sprite-width margin from each camera edge.
+// Also mirrors the sprite to face the direction of travel.
+inline void walkAndBounce(entt::registry &registry) {
+    const auto &camera = registry.ctx<Camera>();
+    registry.view<Shroom, Position, Velocity, Sprite>().each(
+        [&camera](Position &pos, Velocity &vel, const Sprite &sprite) {
+        pos.x += vel.x;
+        const int16_t margin = (int16_t)sprite.w;
+        if (vel.x > 0 && pos.x + (int16_t)sprite.w >= (int16_t)camera.w - margin) {
+            pos.x = (int16_t)camera.w - (int16_t)sprite.w - margin;
+            vel.x = -vel.x;
+        } else if (vel.x < 0 && pos.x <= margin) {
+            pos.x = margin;
+            vel.x = -vel.x;
         }
-    }
+        pos.scaleX = vel.x < 0 ? -1 : 1;
+    });
+}
 
+inline void homeInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    if (e.button == ButtonEvent::Button::C)
+        registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().clockScene);
+}
+
+class HomeScene : public Scene {
   public:
     void load(entt::registry &registry) override {
-        mRegistry = &registry;
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&HomeScene::onButton>(this);
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&homeInputSystem>(&registry);
 
         auto &lib = registry.ctx<AssetLibrary>();
 
@@ -80,8 +97,7 @@ class HomeScene : public Scene {
     }
 
     void unload(entt::registry &registry) override {
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&HomeScene::onButton>(this);
-        mRegistry = nullptr;
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&homeInputSystem>(&registry);
         auto &lib = registry.ctx<AssetLibrary>();
         for (auto &a : lib.animSets)
             freeAnimationSet(a);
@@ -92,9 +108,7 @@ class HomeScene : public Scene {
 
     void update(entt::registry &registry) override {
         pollInput(registry);
-
         walkAndBounce(registry);
-
         animateSprites(registry);
     }
 };

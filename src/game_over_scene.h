@@ -5,23 +5,28 @@
 #include "systems.h"
 #include <entt/entity/registry.hpp>
 
+// --- Components ---
+
+struct GameOverState {
+    char scoreText[24]{};
+};
+
+// --- Systems ---
+
+inline void gameOverInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().gameScene);
+}
+
 class GameOverScene : public Scene {
-    entt::registry *mRegistry{nullptr};
-    char mScoreText[24]{};
-
-    void onButton(const ButtonEvent &e) { mRegistry->ctx<SceneManager>().transition(nextScene); }
-
   public:
-    Scene *nextScene{nullptr};
-
     void load(entt::registry &registry) override {
-        mRegistry = &registry;
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameOverScene::onButton>(this);
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&gameOverInputSystem>(&registry);
 
+        auto &state = registry.set<GameOverState>();
         uint32_t score = 0;
         if (auto *s = registry.try_ctx<Score>())
             score = s->value;
-        snprintf(mScoreText, sizeof(mScoreText), "score: %lu", score);
+        snprintf(state.scoreText, sizeof(state.scoreText), "score: %lu", score);
 
         auto title = registry.create();
         registry.emplace<Position>(title, int16_t(80), int16_t(40));
@@ -29,7 +34,7 @@ class GameOverScene : public Scene {
 
         auto scoreLabel = registry.create();
         registry.emplace<Position>(scoreLabel, int16_t(80), int16_t(65));
-        registry.emplace<Label>(scoreLabel, mScoreText, uint16_t(TFT_WHITE), uint8_t(1));
+        registry.emplace<Label>(scoreLabel, state.scoreText, uint16_t(TFT_WHITE), uint8_t(1));
 
         auto prompt = registry.create();
         registry.emplace<Position>(prompt, int16_t(80), int16_t(90));
@@ -37,12 +42,10 @@ class GameOverScene : public Scene {
     }
 
     void unload(entt::registry &registry) override {
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameOverScene::onButton>(this);
-        mRegistry = nullptr;
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&gameOverInputSystem>(&registry);
+        registry.unset<GameOverState>();
         registry.clear();
     }
-
-    void update(entt::registry &registry) override { pollInput(registry); }
 };
 
 inline GameOverScene gameOverScene;

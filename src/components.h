@@ -2,7 +2,7 @@
 
 #include <M5Unified.h>
 
-struct Scene; // forward declaration for ClockEditState::prevScene
+struct Scene; // forward declaration for GameMap
 
 struct Animation {
     M5Canvas **frames{nullptr}; // heap-allocated array of M5Canvas sprites, one per frame
@@ -46,35 +46,13 @@ struct Clock {
     uint32_t timestamp{0}; // Unix time, seconds since 1970-01-01
 };
 
-struct ClockFieldLabel {
-    enum class Field : uint8_t { Hours, Minutes, AmPm, Month, Day, Year };
-    Field field;
-    uint16_t normalColor;
+struct GameMap {
+    Scene *homeScene{nullptr};
+    Scene *titleScene{nullptr};
+    Scene *gameScene{nullptr};
+    Scene *gameOverScene{nullptr};
+    Scene *clockScene{nullptr};
 };
-
-struct ClockEditState {
-    bool active{false};
-    Scene *prevScene{nullptr};
-    ClockFieldLabel::Field field{ClockFieldLabel::Field::Hours};
-    int8_t hour{12};  // 1-12
-    int8_t minute{0}; // 0-59
-    bool pm{false};
-    int8_t month{1}; // 1-12
-    int8_t day{1};   // 1-31
-    int16_t year{2025};
-};
-
-struct ClockBuffers {
-    char hour[3];  // "12\0"
-    char min[3];   // "34\0"
-    char ampm[3];  // "AM\0"
-    char month[4]; // "Jan\0"
-    char day[3];   // "15\0"
-    char year[5];  // "2025\0"
-};
-
-enum GameAnimationId : uint8_t { PlayerAnim, CoinAnim, ObstacleAnim };
-enum GameSpriteId : uint8_t { BgSprite, MidSprite, GroundSprite };
 
 struct Hitbox {
     uint16_t w{0};

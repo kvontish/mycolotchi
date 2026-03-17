@@ -1,31 +1,155 @@
 #pragma once
 
 #include "components.h"
-#include "game_over_scene.h"
 #include "scene.h"
 #include "systems.h"
 #include <entt/entity/registry.hpp>
 
-class GameScene : public Scene {
-    entt::registry *mRegistry{nullptr};
-    int16_t mNextSpawnX{200};
+// --- Components ---
 
-    void onButton(const ButtonEvent &e) {
+enum GameAnimationId : uint8_t { PlayerAnim, CoinAnim, ObstacleAnim };
+enum GameSpriteId : uint8_t { BgSprite, MidSprite, GroundSprite };
 
-        mRegistry->view<Player, Velocity>().each([this](entt::entity entity, Velocity &vel) {
-            if (mRegistry->all_of<Grounded>(entity)) {
-                vel.y = -12;
-                mRegistry->remove<Grounded>(entity);
-            }
-        });
+struct SpawnState {
+    int16_t nextX{200};
+};
+
+// --- Systems ---
+
+inline void gameInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    registry->view<Player, Velocity>().each([registry](entt::entity entity, Velocity &vel) {
+        if (registry->all_of<Grounded>(entity)) {
+            vel.y = -12;
+            registry->remove<Grounded>(entity);
+        }
+    });
+}
+
+inline void updatePlayerAnimation(entt::registry &registry) {
+    registry.view<Player, AnimationState>().each([&registry](entt::entity e, AnimationState &state) {
+        uint8_t desired = registry.all_of<Grounded>(e) ? 0 : 1;
+        if (state.currentAnimation != desired) {
+            state.currentAnimation = desired;
+            state.currentFrame = 0;
+            state.lastFrameMs = millis();
+        }
+    });
+}
+
+inline void spawn(entt::registry &registry) {
+    auto &state = registry.ctx<SpawnState>();
+    const auto &camera = registry.ctx<Camera>();
+    const auto &lib = registry.ctx<AssetLibrary>();
+    AnimationSet *coinAnimSet = lib.animSets[CoinAnim];
+    AnimationSet *obstacleAnimSet = lib.animSets[ObstacleAnim];
+    int16_t spawnEdge = camera.x + (int16_t)camera.w;
+
+    if (spawnEdge < state.nextX)
+        return;
+
+    auto e = registry.create();
+    registry.emplace<Despawnable>(e);
+
+    if (random(5) < 2) {                                       // 40% obstacle, 60% coin
+        registry.emplace<Position>(e, spawnEdge, int16_t(74)); // bottom capped at groundY - obstacleH
+        registry.emplace<Obstacle>(e);
+        registry.emplace<Sprite>(e, obstacleAnimSet->w, obstacleAnimSet->h);
+        registry.emplace<Hitbox>(e, uint16_t(16), uint16_t(14), int8_t(5), int8_t(6));
+        registry.emplace<AnimationState>(e, obstacleAnimSet);
+    } else {
+        registry.emplace<Position>(
+            e, spawnEdge, (int16_t)random(50, 84)); // bottom capped at groundHitboxY(96) - coinH(13) = 83
+        registry.emplace<Coin>(e);
+        registry.emplace<Sprite>(e, coinAnimSet->w, coinAnimSet->h);
+        registry.emplace<AnimationState>(e, coinAnimSet);
     }
 
+    state.nextX = spawnEdge + (int16_t)random(60, 140);
+}
+
+inline void despawn(entt::registry &registry) {
+    const auto &camera = registry.ctx<Camera>();
+
+    std::vector<entt::entity> toDestroy;
+    registry.view<Despawnable, Position, Sprite>().each([&](entt::entity e, const Position &pos, const Sprite &sprite) {
+        if (pos.x + (int16_t)sprite.w < camera.x - 16)
+            toDestroy.push_back(e);
+    });
+
+    for (auto e : toDestroy)
+        registry.destroy(e);
+}
+
+static void getBounds(const Position &pos,
+                      const Sprite &sprite,
+                      const Hitbox *hb,
+                      int16_t &x,
+                      int16_t &y,
+                      int16_t &w,
+                      int16_t &h) {
+    if (hb) {
+        x = pos.x + hb->ox;
+        y = pos.y + hb->oy;
+        w = hb->w;
+        h = hb->h;
+    } else {
+        x = pos.x;
+        y = pos.y;
+        w = sprite.w;
+        h = sprite.h;
+    }
+}
+
+inline void checkCollisions(entt::registry &registry) {
+    auto players = registry.view<Player, Position, Sprite>();
+    auto obstacles = registry.view<Obstacle, Position, Sprite>();
+
+    bool hit = false;
+    players.each([&](entt::entity pe, const Position &pp, const Sprite &ps) {
+        int16_t px, py, pw, ph;
+        getBounds(pp, ps, registry.try_get<Hitbox>(pe), px, py, pw, ph);
+        obstacles.each([&](entt::entity oe, const Position &op, const Sprite &os) {
+            int16_t ox, oy, ow, oh;
+            getBounds(op, os, registry.try_get<Hitbox>(oe), ox, oy, ow, oh);
+            if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy)
+                hit = true;
+        });
+    });
+
+    if (hit)
+        registry.ctx<SceneManager>().transition(registry.ctx<GameMap>().gameOverScene);
+}
+
+inline void collectCoins(entt::registry &registry) {
+    auto players = registry.view<Player, Position, Sprite>();
+    auto coins = registry.view<Coin, Position, Sprite>();
+
+    std::vector<entt::entity> collected;
+    players.each([&](entt::entity pe, const Position &pp, const Sprite &ps) {
+        int16_t px, py, pw, ph;
+        getBounds(pp, ps, registry.try_get<Hitbox>(pe), px, py, pw, ph);
+        coins.each([&](entt::entity coin, const Position &cp, const Sprite &cs) {
+            int16_t cx, cy, cw, ch;
+            getBounds(cp, cs, registry.try_get<Hitbox>(coin), cx, cy, cw, ch);
+            if (px < cx + cw && px + pw > cx && py < cy + ch && py + ph > cy)
+                collected.push_back(coin);
+        });
+    });
+
+    for (auto e : collected) {
+        registry.destroy(e);
+        registry.ctx<Score>().value++;
+        M5.Speaker.tone(900, 60, 0, true);   // lower note
+        M5.Speaker.tone(1400, 80, 0, false); // higher note, queued after
+    }
+}
+
+class GameScene : public Scene {
   public:
     void load(entt::registry &registry) override {
-        mRegistry = &registry;
-        mNextSpawnX = 200;
+        registry.set<SpawnState>();
         registry.set<Score>();
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&GameScene::onButton>(this);
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&gameInputSystem>(&registry);
 
         auto &lib = registry.ctx<AssetLibrary>();
 
@@ -123,8 +247,8 @@ class GameScene : public Scene {
     }
 
     void unload(entt::registry &registry) override {
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&GameScene::onButton>(this);
-        mRegistry = nullptr;
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&gameInputSystem>(&registry);
+        registry.unset<SpawnState>();
         auto &lib = registry.ctx<AssetLibrary>();
         for (auto &a : lib.animSets)
             freeAnimationSet(a);
@@ -139,8 +263,8 @@ class GameScene : public Scene {
         groundCheck(registry);
         updatePlayerAnimation(registry);
         animateSprites(registry);
-        checkCollisions(registry, &gameOverScene);
-        spawn(registry, mNextSpawnX);
+        checkCollisions(registry);
+        spawn(registry);
         despawn(registry);
         collectCoins(registry);
         moveCamera(registry);

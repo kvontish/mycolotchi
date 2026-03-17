@@ -5,17 +5,16 @@
 #include "systems.h"
 #include <entt/entity/registry.hpp>
 
+// --- Systems ---
+
+inline void titleInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().gameScene);
+}
+
 class TitleScene : public Scene {
-    entt::registry *mRegistry{nullptr};
-
-    void onButton(const ButtonEvent &e) { mRegistry->ctx<SceneManager>().transition(nextScene); }
-
   public:
-    Scene *nextScene{nullptr};
-
     void load(entt::registry &registry) override {
-        mRegistry = &registry;
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&TitleScene::onButton>(this);
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&titleInputSystem>(&registry);
 
         auto title = registry.create();
         registry.emplace<Position>(title, int16_t(80), int16_t(45));
@@ -27,8 +26,7 @@ class TitleScene : public Scene {
     }
 
     void unload(entt::registry &registry) override {
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&TitleScene::onButton>(this);
-        mRegistry = nullptr;
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&titleInputSystem>(&registry);
         registry.clear();
     }
 

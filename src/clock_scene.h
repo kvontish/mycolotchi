@@ -5,13 +5,183 @@
 #include "systems.h"
 #include <entt/entity/registry.hpp>
 
+// --- Components ---
+
+struct ClockFieldLabel {
+    enum class Field : uint8_t { Hours, Minutes, AmPm, Month, Day, Year };
+    Field field;
+    uint16_t normalColor;
+};
+
+struct ClockEditState {
+    bool active{false};
+    Scene *prevScene{nullptr};
+    ClockFieldLabel::Field field{ClockFieldLabel::Field::Hours};
+    int8_t hour{12};  // 1-12
+    int8_t minute{0}; // 0-59
+    bool pm{false};
+    int8_t month{1}; // 1-12
+    int8_t day{1};   // 1-31
+    int16_t year{2025};
+};
+
+struct ClockBuffers {
+    char hour[3];  // "12\0"
+    char min[3];   // "34\0"
+    char ampm[3];  // "AM\0"
+    char month[4]; // "Jan\0"
+    char day[3];   // "15\0"
+    char year[5];  // "2025\0"
+};
+
+// --- Systems ---
+
+static int8_t clockDaysInMonth(int8_t m, int16_t y) {
+    if (m == 2)
+        return (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) ? 29 : 28;
+    if (m == 4 || m == 6 || m == 9 || m == 11)
+        return 30;
+    return 31;
+}
+
+// Tomohiko Sakamoto's algorithm — returns 0=Sun ... 6=Sat
+static int8_t clockWeekday(int16_t y, int8_t m, int8_t d) {
+    static const int8_t t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    if (m < 3)
+        y--;
+    return (y + y / 4 - y / 100 + y / 400 + t[m - 1] + d) % 7;
+}
+
+static void applyClockEdit(entt::registry *registry) {
+    auto &edit = registry->ctx<ClockEditState>();
+    int8_t h24 = edit.hour % 12;
+    if (edit.pm)
+        h24 += 12;
+
+    m5::rtc_datetime_t dt{};
+    dt.time.hours = h24;
+    dt.time.minutes = edit.minute;
+    dt.time.seconds = 0;
+    dt.date.year = edit.year;
+    dt.date.month = edit.month;
+    dt.date.date = edit.day;
+    dt.date.weekDay = clockWeekday(edit.year, edit.month, edit.day);
+    M5.Rtc.setDateTime(dt);
+
+    auto &clock = registry->ctx<Clock>();
+    clock.hours = h24;
+    clock.minutes = edit.minute;
+    clock.seconds = 0;
+    clock.year = edit.year;
+    clock.month = edit.month;
+    clock.day = edit.day;
+    clock.timestamp = toUnixTime(clock.year, clock.month, clock.day, clock.hours, clock.minutes, clock.seconds);
+    edit.active = false;
+}
+
+inline void clockInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    auto &edit = registry->ctx<ClockEditState>();
+
+    if (!edit.active) {
+        if (e.action == ButtonState::LongPressed && e.button == ButtonEvent::Button::A) {
+            const auto &clock = registry->ctx<Clock>();
+            edit.pm = clock.hours >= 12;
+            edit.hour = clock.hours % 12;
+            if (edit.hour == 0)
+                edit.hour = 12;
+            edit.minute = clock.minutes;
+            edit.month = clock.month;
+            edit.day = clock.day;
+            edit.year = clock.year;
+            edit.field = ClockFieldLabel::Field::Hours;
+            edit.active = true;
+        } else if (e.button == ButtonEvent::Button::C) {
+            registry->ctx<SceneManager>().transition(edit.prevScene);
+        }
+        return;
+    }
+
+    static constexpr uint8_t kFieldCount = uint8_t(ClockFieldLabel::Field::Year) + 1;
+
+    switch (e.button) {
+    case ButtonEvent::Button::A:
+        switch (edit.field) {
+        case ClockFieldLabel::Field::Hours:
+            edit.hour = (edit.hour % 12) + 1;
+            break;
+        case ClockFieldLabel::Field::Minutes:
+            edit.minute = (edit.minute + 1) % 60;
+            break;
+        case ClockFieldLabel::Field::AmPm:
+            edit.pm = !edit.pm;
+            break;
+        case ClockFieldLabel::Field::Month:
+            edit.month = (edit.month % 12) + 1;
+            edit.day = min(edit.day, clockDaysInMonth(edit.month, edit.year));
+            break;
+        case ClockFieldLabel::Field::Day:
+            edit.day = (edit.day % clockDaysInMonth(edit.month, edit.year)) + 1;
+            break;
+        case ClockFieldLabel::Field::Year:
+            edit.year++;
+            edit.day = min(edit.day, clockDaysInMonth(edit.month, edit.year));
+            break;
+        }
+        break;
+    case ButtonEvent::Button::B:
+        if (uint8_t(edit.field) + 1 >= kFieldCount)
+            applyClockEdit(registry);
+        else
+            edit.field = ClockFieldLabel::Field(uint8_t(edit.field) + 1);
+        break;
+    case ButtonEvent::Button::C:
+        applyClockEdit(registry);
+        break;
+    }
+}
+
+inline void syncClockBuffers(entt::registry &registry) {
+    static const char *kMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    auto &bufs = registry.ctx<ClockBuffers>();
+    const auto &edit = registry.ctx<ClockEditState>();
+
+    if (edit.active) {
+        snprintf(bufs.hour, sizeof(bufs.hour), "%02d", edit.hour);
+        snprintf(bufs.min, sizeof(bufs.min), "%02d", edit.minute);
+        snprintf(bufs.ampm, sizeof(bufs.ampm), "%s", edit.pm ? "PM" : "AM");
+        snprintf(bufs.month, sizeof(bufs.month), "%s", kMonths[edit.month - 1]);
+        snprintf(bufs.day, sizeof(bufs.day), "%02d", edit.day);
+        snprintf(bufs.year, sizeof(bufs.year), "%04d", edit.year);
+    } else {
+        const auto &clock = registry.ctx<Clock>();
+        bool pm = clock.hours >= 12;
+        int8_t h = clock.hours % 12;
+        if (h == 0)
+            h = 12;
+        snprintf(bufs.hour, sizeof(bufs.hour), "%02d", h);
+        snprintf(bufs.min, sizeof(bufs.min), "%02d", clock.minutes);
+        snprintf(bufs.ampm, sizeof(bufs.ampm), "%s", pm ? "PM" : "AM");
+        snprintf(bufs.month, sizeof(bufs.month), "%s", kMonths[clock.month - 1]);
+        snprintf(bufs.day, sizeof(bufs.day), "%02d", clock.day);
+        snprintf(bufs.year, sizeof(bufs.year), "%04d", clock.year);
+    }
+}
+
+inline void highlightClockField(entt::registry &registry) {
+    const auto &edit = registry.ctx<ClockEditState>();
+    registry.view<ClockFieldLabel, Label>().each([&edit](const ClockFieldLabel &cfl, Label &label) {
+        label.color = (edit.active && edit.field == cfl.field) ? uint16_t(TFT_YELLOW) : cfl.normalColor;
+    });
+}
+
 class ClockScene : public Scene {
   public:
-    Scene *prevScene{nullptr};
-
     void load(entt::registry &registry) override {
-        auto &edit = registry.set<ClockEditState>();
-        edit.prevScene = prevScene;
+        // ClockEditState is a persistent context set up in main.cpp; only reset edit mode here
+        auto &edit = registry.ctx<ClockEditState>();
+        edit.active = false;
+        edit.field = ClockFieldLabel::Field::Hours;
         registry.set<ClockBuffers>();
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&clockInputSystem>(&registry);
 
@@ -58,7 +228,7 @@ class ClockScene : public Scene {
 
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&clockInputSystem>(&registry);
-        registry.unset<ClockEditState>();
+        registry.ctx<ClockEditState>().active = false;
         registry.unset<ClockBuffers>();
         registry.clear();
     }

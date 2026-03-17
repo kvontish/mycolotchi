@@ -1,3 +1,4 @@
+#include "clock_scene.h"
 #include "components.h"
 #include "game_over_scene.h"
 #include "game_scene.h"
@@ -52,6 +53,15 @@ void setup() {
 
     registry.set<Clock>();
     tickClock(registry); // populate from RTC before first frame
+
+    registry.set<ClockEditState>().prevScene = &homeScene;
+
+    auto &map = registry.set<GameMap>();
+    map.homeScene = &homeScene;
+    map.titleScene = &titleScene;
+    map.gameScene = &gameScene;
+    map.gameOverScene = &gameOverScene;
+    map.clockScene = &clockScene;
 
     registry.set<SceneManager>();
     registry.ctx<SceneManager>().transition(&homeScene);
