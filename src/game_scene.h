@@ -32,8 +32,8 @@ class GameScene : public Scene {
         auto &lib = registry.ctx<AssetLibrary>();
 
         uint16_t bgW, bgH;
-        lib.sprites[BgSprite] =
-            loadSpriteFromSD("/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120-cc.png", bgW, bgH);
+        lib.sprites[BgSprite] = loadSpriteFromSD(
+            "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120-cc.png", bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
         registry.emplace<Sprite>(bg, bgW, bgH, lib.sprites[BgSprite]);
