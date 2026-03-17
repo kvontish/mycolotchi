@@ -50,12 +50,16 @@ void setup() {
     registry.set<M5Canvas>(&M5.Display);
     registry.ctx<M5Canvas>().createSprite(camera.w, camera.h);
 
+    registry.set<Clock>();
+    tickClock(registry); // populate from RTC before first frame
+
     registry.set<SceneManager>();
     registry.ctx<SceneManager>().transition(&homeScene);
 }
 
 void loop() {
     sleepIfInactive();
+    tickClock(registry);
     registry.ctx<SceneManager>().update(registry);
     render(registry);
     // renderHitboxes(registry);

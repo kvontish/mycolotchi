@@ -2,6 +2,8 @@
 
 #include <M5Unified.h>
 
+struct Scene; // forward declaration for ClockEditState::prevScene
+
 struct Animation {
     M5Canvas **frames{nullptr}; // heap-allocated array of M5Canvas sprites, one per frame
     uint8_t frameCount{0};
@@ -35,6 +37,40 @@ struct Camera {
     uint16_t w{160};
     uint16_t h{120};
     uint8_t scale{2};
+};
+
+struct Clock {
+    uint16_t year{2025};
+    uint8_t month{1}, day{1};
+    uint8_t hours{0}, minutes{0}, seconds{0};
+    uint32_t timestamp{0}; // Unix time, seconds since 1970-01-01
+};
+
+struct ClockFieldLabel {
+    enum class Field : uint8_t { Hours, Minutes, AmPm, Month, Day, Year };
+    Field field;
+    uint16_t normalColor;
+};
+
+struct ClockEditState {
+    bool active{false};
+    Scene *prevScene{nullptr};
+    ClockFieldLabel::Field field{ClockFieldLabel::Field::Hours};
+    int8_t hour{12};  // 1-12
+    int8_t minute{0}; // 0-59
+    bool pm{false};
+    int8_t month{1}; // 1-12
+    int8_t day{1};   // 1-31
+    int16_t year{2025};
+};
+
+struct ClockBuffers {
+    char hour[3];  // "12\0"
+    char min[3];   // "34\0"
+    char ampm[3];  // "AM\0"
+    char month[4]; // "Jan\0"
+    char day[3];   // "15\0"
+    char year[5];  // "2025\0"
 };
 
 enum GameAnimationId : uint8_t { PlayerAnim, CoinAnim, ObstacleAnim };

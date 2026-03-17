@@ -3,62 +3,70 @@
 #include "components.h"
 #include "scene.h"
 #include "systems.h"
-#include <M5Unified.h>
 #include <entt/entity/registry.hpp>
 
 class ClockScene : public Scene {
-    entt::registry *mRegistry{nullptr};
-    char mTimeBuf[9];  // "HH:MM AM\0"
-    char mDateBuf[12]; // "Jan 15 2025\0"
-
-    void onButton(const ButtonEvent &e) {
-        if (e.button == ButtonEvent::Button::C)
-            mRegistry->ctx<SceneManager>().transition(prevScene);
-    }
-
   public:
     Scene *prevScene{nullptr};
 
     void load(entt::registry &registry) override {
-        mRegistry = &registry;
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&ClockScene::onButton>(this);
+        auto &edit = registry.set<ClockEditState>();
+        edit.prevScene = prevScene;
+        registry.set<ClockBuffers>();
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&clockInputSystem>(&registry);
 
-        const auto &camera = registry.ctx<Camera>();
+        auto &bufs = registry.ctx<ClockBuffers>();
 
-        mTimeBuf[0] = '\0';
-        mDateBuf[0] = '\0';
+        // Time line — "HH:MM AM" = 144px wide, centered in 160px → left edge x=8
+        // Size 3: each char 18px wide. Centers: HH=26, ':'=53, MM=80, AM=134
+        auto hour = registry.create();
+        registry.emplace<Position>(hour, int16_t(26), int16_t(45));
+        registry.emplace<Label>(hour, (const char *)bufs.hour, uint16_t(TFT_WHITE), uint8_t(3));
+        registry.emplace<ClockFieldLabel>(hour, ClockFieldLabel::Field::Hours, uint16_t(TFT_WHITE));
 
-        auto timeLabel = registry.create();
-        registry.emplace<Position>(timeLabel, int16_t(camera.w / 2), int16_t(45));
-        registry.emplace<Label>(timeLabel, (const char *)mTimeBuf, uint16_t(TFT_WHITE), uint8_t(3));
+        auto colon = registry.create();
+        registry.emplace<Position>(colon, int16_t(53), int16_t(45));
+        registry.emplace<Label>(colon, ":", uint16_t(TFT_WHITE), uint8_t(3));
 
-        auto dateLabel = registry.create();
-        registry.emplace<Position>(dateLabel, int16_t(camera.w / 2), int16_t(78));
-        registry.emplace<Label>(dateLabel, (const char *)mDateBuf, uint16_t(TFT_LIGHTGREY), uint8_t(1));
+        auto min = registry.create();
+        registry.emplace<Position>(min, int16_t(80), int16_t(45));
+        registry.emplace<Label>(min, (const char *)bufs.min, uint16_t(TFT_WHITE), uint8_t(3));
+        registry.emplace<ClockFieldLabel>(min, ClockFieldLabel::Field::Minutes, uint16_t(TFT_WHITE));
+
+        auto ampm = registry.create();
+        registry.emplace<Position>(ampm, int16_t(134), int16_t(45));
+        registry.emplace<Label>(ampm, (const char *)bufs.ampm, uint16_t(TFT_WHITE), uint8_t(3));
+        registry.emplace<ClockFieldLabel>(ampm, ClockFieldLabel::Field::AmPm, uint16_t(TFT_WHITE));
+
+        // Date line — "Jan 15 2025" = 66px wide, centered in 160px → left edge x=47
+        // Size 1: each char 6px wide. Centers: month=56, day=77, year=101
+        auto month = registry.create();
+        registry.emplace<Position>(month, int16_t(56), int16_t(78));
+        registry.emplace<Label>(month, (const char *)bufs.month, uint16_t(TFT_LIGHTGREY), uint8_t(1));
+        registry.emplace<ClockFieldLabel>(month, ClockFieldLabel::Field::Month, uint16_t(TFT_LIGHTGREY));
+
+        auto day = registry.create();
+        registry.emplace<Position>(day, int16_t(77), int16_t(78));
+        registry.emplace<Label>(day, (const char *)bufs.day, uint16_t(TFT_LIGHTGREY), uint8_t(1));
+        registry.emplace<ClockFieldLabel>(day, ClockFieldLabel::Field::Day, uint16_t(TFT_LIGHTGREY));
+
+        auto year = registry.create();
+        registry.emplace<Position>(year, int16_t(101), int16_t(78));
+        registry.emplace<Label>(year, (const char *)bufs.year, uint16_t(TFT_LIGHTGREY), uint8_t(1));
+        registry.emplace<ClockFieldLabel>(year, ClockFieldLabel::Field::Year, uint16_t(TFT_LIGHTGREY));
     }
 
     void unload(entt::registry &registry) override {
-        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&ClockScene::onButton>(this);
-        mRegistry = nullptr;
+        registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&clockInputSystem>(&registry);
+        registry.unset<ClockEditState>();
+        registry.unset<ClockBuffers>();
         registry.clear();
     }
 
     void update(entt::registry &registry) override {
         pollInput(registry);
-
-        static const char *kMonths[] = {
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-        auto t = M5.Rtc.getTime();
-        int8_t h = t.hours;
-        const char *ampm = h >= 12 ? "PM" : "AM";
-        h = h % 12;
-        if (h == 0)
-            h = 12;
-        snprintf(mTimeBuf, sizeof(mTimeBuf), "%02d:%02d %s", h, t.minutes, ampm);
-
-        auto d = M5.Rtc.getDate();
-        snprintf(mDateBuf, sizeof(mDateBuf), "%s %02d %04d", kMonths[d.month - 1], d.date, d.year);
+        syncClockBuffers(registry);
+        highlightClockField(registry);
     }
 };
 
