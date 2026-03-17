@@ -25,12 +25,6 @@ struct AnimationState {
     uint32_t lastFrameMs{0};
 };
 
-struct AssetLibrary {
-    static constexpr uint8_t kMax = 8;
-    AnimationSet *animSets[kMax]{};
-    M5Canvas *sprites[kMax]{};
-};
-
 struct Camera {
     int16_t x{0};
     int16_t y{0};

@@ -8,8 +8,14 @@
 
 // --- Components ---
 
-enum GameAnimationId : uint8_t { PlayerAnim, CoinAnim, ObstacleAnim };
-enum GameSpriteId : uint8_t { BgSprite, MidSprite, GroundSprite };
+struct GameAssets {
+    AnimationSet *player{nullptr};
+    AnimationSet *coin{nullptr};
+    AnimationSet *obstacle{nullptr};
+    M5Canvas *bg{nullptr};
+    M5Canvas *mid{nullptr};
+    M5Canvas *ground{nullptr};
+};
 
 struct SpawnState {
     int16_t nextX{200};
@@ -40,9 +46,9 @@ inline void updatePlayerAnimation(entt::registry &registry) {
 inline void spawn(entt::registry &registry) {
     auto &state = registry.ctx<SpawnState>();
     const auto &camera = registry.ctx<Camera>();
-    const auto &lib = registry.ctx<AssetLibrary>();
-    AnimationSet *coinAnimSet = lib.animSets[CoinAnim];
-    AnimationSet *obstacleAnimSet = lib.animSets[ObstacleAnim];
+    const auto &assets = registry.ctx<GameAssets>();
+    AnimationSet *coinAnimSet = assets.coin;
+    AnimationSet *obstacleAnimSet = assets.obstacle;
     int16_t spawnEdge = camera.x + (int16_t)camera.w;
 
     if (spawnEdge < state.nextX)
@@ -152,30 +158,30 @@ class GameScene : public Scene {
         registry.set<Score>();
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&gameInputSystem>(&registry);
 
-        auto &lib = registry.ctx<AssetLibrary>();
+        auto &assets = registry.set<GameAssets>();
 
         uint16_t bgW, bgH;
-        lib.sprites[BgSprite] = loadSpriteFromSD(
+        assets.bg = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120-cc.png", bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
-        registry.emplace<Sprite>(bg, bgW, bgH, lib.sprites[BgSprite]);
+        registry.emplace<Sprite>(bg, bgW, bgH, assets.bg);
         registry.emplace<Tiled>(bg, true, false);
 
         uint16_t midW, midH;
-        lib.sprites[MidSprite] = loadSpriteFromSD(
+        assets.mid = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120-cc.png", midW, midH);
         auto mid = registry.create();
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
-        registry.emplace<Sprite>(mid, midW, midH, lib.sprites[MidSprite]);
+        registry.emplace<Sprite>(mid, midW, midH, assets.mid);
         registry.emplace<Tiled>(mid, true, false);
 
         uint16_t groundW, groundH;
-        lib.sprites[GroundSprite] = loadSpriteFromSD(
+        assets.ground = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120-cc.png", groundW, groundH);
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(90));
-        registry.emplace<Sprite>(ground, groundW, groundH, lib.sprites[GroundSprite]);
+        registry.emplace<Sprite>(ground, groundW, groundH, assets.ground);
         registry.emplace<Hitbox>(ground, uint16_t(0), uint16_t(0), int8_t(0), int8_t(6));
         registry.emplace<Tiled>(ground, true, false);
         registry.emplace<Solid>(ground);
@@ -200,8 +206,8 @@ class GameScene : public Scene {
         anims[0] = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
         anims[1] = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
         anims[1].loop = false;
-        lib.animSets[PlayerAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *lib.animSets[PlayerAnim] = {anims, 2, pw, ph};
+        assets.player = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.player = {anims, 2, pw, ph};
 
         static const char *gemPaths[] = {
             "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-1.png",
@@ -213,8 +219,8 @@ class GameScene : public Scene {
         uint16_t gw, gh;
         Animation *coinAnims = (Animation *)malloc(sizeof(Animation));
         coinAnims[0] = loadAnimationFromSD(gemPaths, 5, 100, gw, gh);
-        lib.animSets[CoinAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *lib.animSets[CoinAnim] = {coinAnims, 1, gw, gh};
+        assets.coin = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.coin = {coinAnims, 1, gw, gh};
 
         static const char *fireballPaths[] = {
             "/Props Items and VFX/fireball-cc/fireball-1.png",
@@ -226,14 +232,14 @@ class GameScene : public Scene {
         uint16_t fw, fh;
         Animation *obstacleAnims = (Animation *)malloc(sizeof(Animation));
         obstacleAnims[0] = loadAnimationFromSD(fireballPaths, 5, 80, fw, fh);
-        lib.animSets[ObstacleAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *lib.animSets[ObstacleAnim] = {obstacleAnims, 1, fw, fh};
+        assets.obstacle = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.obstacle = {obstacleAnims, 1, fw, fh};
 
         auto player = registry.create();
         registry.emplace<Player>(player);
         registry.emplace<Position>(player, int16_t(10), int16_t(74));
-        registry.emplace<Sprite>(player, lib.animSets[PlayerAnim]->w, lib.animSets[PlayerAnim]->h);
-        registry.emplace<AnimationState>(player, lib.animSets[PlayerAnim]);
+        registry.emplace<Sprite>(player, assets.player->w, assets.player->h);
+        registry.emplace<AnimationState>(player, assets.player);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
@@ -250,11 +256,14 @@ class GameScene : public Scene {
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&gameInputSystem>(&registry);
         registry.unset<SpawnState>();
-        auto &lib = registry.ctx<AssetLibrary>();
-        for (auto &a : lib.animSets)
-            freeAnimationSet(a);
-        for (auto &s : lib.sprites)
-            freeSprite(s);
+        auto &assets = registry.ctx<GameAssets>();
+        freeAnimationSet(assets.player);
+        freeAnimationSet(assets.coin);
+        freeAnimationSet(assets.obstacle);
+        freeSprite(assets.bg);
+        freeSprite(assets.mid);
+        freeSprite(assets.ground);
+        registry.unset<GameAssets>();
         registry.clear();
     }
 

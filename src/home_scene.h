@@ -8,8 +8,12 @@
 
 // --- Components ---
 
-enum HomeSpriteId : uint8_t { HomeBgSprite, HomeMidSprite, HomeGroundSprite };
-enum HomeAnimId : uint8_t { HomeShroomAnim };
+struct HomeAssets {
+    AnimationSet *shroom{nullptr};
+    M5Canvas *bg{nullptr};
+    M5Canvas *mid{nullptr};
+    M5Canvas *ground{nullptr};
+};
 
 // --- Systems ---
 
@@ -42,30 +46,30 @@ class HomeScene : public Scene {
     void load(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&homeInputSystem>(&registry);
 
-        auto &lib = registry.ctx<AssetLibrary>();
+        auto &assets = registry.set<HomeAssets>();
 
         uint16_t bgW, bgH;
-        lib.sprites[HomeBgSprite] = loadSpriteFromSD(
+        assets.bg = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/back-120-cc.png", bgW, bgH);
         auto bg = registry.create();
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.3f);
-        registry.emplace<Sprite>(bg, bgW, bgH, lib.sprites[HomeBgSprite]);
+        registry.emplace<Sprite>(bg, bgW, bgH, assets.bg);
         registry.emplace<Tiled>(bg, true, false);
 
         uint16_t midW, midH;
-        lib.sprites[HomeMidSprite] = loadSpriteFromSD(
+        assets.mid = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/middle-120-cc.png", midW, midH);
         auto mid = registry.create();
         registry.emplace<Position>(mid, int16_t(0), int16_t(0), 0.6f);
-        registry.emplace<Sprite>(mid, midW, midH, lib.sprites[HomeMidSprite]);
+        registry.emplace<Sprite>(mid, midW, midH, assets.mid);
         registry.emplace<Tiled>(mid, true, false);
 
         uint16_t groundW, groundH;
-        lib.sprites[HomeGroundSprite] = loadSpriteFromSD(
+        assets.ground = loadSpriteFromSD(
             "/Environments/Forest of Illusion/Forest of Illusion Pack/Layers/tiles-120-cc.png", groundW, groundH);
         auto ground = registry.create();
         registry.emplace<Position>(ground, int16_t(0), int16_t(90));
-        registry.emplace<Sprite>(ground, groundW, groundH, lib.sprites[HomeGroundSprite]);
+        registry.emplace<Sprite>(ground, groundW, groundH, assets.ground);
         registry.emplace<Tiled>(ground, true, false);
 
         static const char *runPaths[] = {
@@ -81,8 +85,8 @@ class HomeScene : public Scene {
         uint16_t pw, ph;
         Animation *anims = (Animation *)malloc(sizeof(Animation));
         anims[0] = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
-        lib.animSets[HomeShroomAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *lib.animSets[HomeShroomAnim] = {anims, 1, pw, ph};
+        assets.shroom = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.shroom = {anims, 1, pw, ph};
 
         auto &camera = registry.ctx<Camera>();
         camera.x = 0;
@@ -93,17 +97,18 @@ class HomeScene : public Scene {
         registry.emplace<Shroom>(shroom);
         registry.emplace<Position>(shroom, int16_t(10), int16_t(74));
         registry.emplace<Sprite>(shroom, pw, ph);
-        registry.emplace<AnimationState>(shroom, lib.animSets[HomeShroomAnim]);
+        registry.emplace<AnimationState>(shroom, assets.shroom);
         registry.emplace<Velocity>(shroom, int16_t(2), int16_t(0));
     }
 
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&homeInputSystem>(&registry);
-        auto &lib = registry.ctx<AssetLibrary>();
-        for (auto &a : lib.animSets)
-            freeAnimationSet(a);
-        for (auto &s : lib.sprites)
-            freeSprite(s);
+        auto &assets = registry.ctx<HomeAssets>();
+        freeAnimationSet(assets.shroom);
+        freeSprite(assets.bg);
+        freeSprite(assets.mid);
+        freeSprite(assets.ground);
+        registry.unset<HomeAssets>();
         registry.clear();
     }
 
