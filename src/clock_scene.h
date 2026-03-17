@@ -15,7 +15,6 @@ struct ClockFieldLabel {
 
 struct ClockEditState {
     bool active{false};
-    Scene *prevScene{nullptr};
     ClockFieldLabel::Field field{ClockFieldLabel::Field::Hours};
     int8_t hour{12};  // 1-12
     int8_t minute{0}; // 0-59
@@ -96,7 +95,7 @@ inline void clockInputSystem(entt::registry *registry, const ButtonEvent &e) {
             edit.field = ClockFieldLabel::Field::Hours;
             edit.active = true;
         } else if (e.button == ButtonEvent::Button::C) {
-            registry->ctx<SceneManager>().transition(edit.prevScene);
+            registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().homeScene);
         }
         return;
     }
@@ -178,10 +177,7 @@ inline void highlightClockField(entt::registry &registry) {
 class ClockScene : public Scene {
   public:
     void load(entt::registry &registry) override {
-        // ClockEditState is a persistent context set up in main.cpp; only reset edit mode here
-        auto &edit = registry.ctx<ClockEditState>();
-        edit.active = false;
-        edit.field = ClockFieldLabel::Field::Hours;
+        registry.set<ClockEditState>();
         registry.set<ClockBuffers>();
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&clockInputSystem>(&registry);
 
@@ -228,7 +224,7 @@ class ClockScene : public Scene {
 
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&clockInputSystem>(&registry);
-        registry.ctx<ClockEditState>().active = false;
+        registry.unset<ClockEditState>();
         registry.unset<ClockBuffers>();
         registry.clear();
     }

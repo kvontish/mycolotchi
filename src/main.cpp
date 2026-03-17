@@ -54,8 +54,6 @@ void setup() {
     registry.set<Clock>();
     tickClock(registry); // populate from RTC before first frame
 
-    registry.set<ClockEditState>().prevScene = &homeScene;
-
     auto &map = registry.set<GameMap>();
     map.homeScene = &homeScene;
     map.titleScene = &titleScene;
