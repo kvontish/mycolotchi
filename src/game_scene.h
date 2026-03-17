@@ -58,21 +58,23 @@ class GameScene : public Scene {
         registry.emplace<Solid>(ground);
 
         static const char *runPaths[] = {
-            "/Characters/Players/Foxy/Sprites/run-cc/player-run-1.png",
-            "/Characters/Players/Foxy/Sprites/run-cc/player-run-2.png",
-            "/Characters/Players/Foxy/Sprites/run-cc/player-run-3.png",
-            "/Characters/Players/Foxy/Sprites/run-cc/player-run-4.png",
-            "/Characters/Players/Foxy/Sprites/run-cc/player-run-5.png",
-            "/Characters/Players/Foxy/Sprites/run-cc/player-run-6.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-1.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-2.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-3.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-4.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-5.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-6.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-7.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-8.png",
         };
         static const char *jumpPaths[] = {
-            "/Characters/Players/Foxy/Sprites/jump-cc/player-jump-1.png",
-            "/Characters/Players/Foxy/Sprites/jump-cc/player-jump-2.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-1.png",
+            "/Characters/Players/Shroom/Sprites/run/player-run-2.png",
         };
 
-        uint16_t pw = 32, ph = 32;
+        uint16_t pw = 22, ph = 22;
         Animation *anims = (Animation *)malloc(2 * sizeof(Animation));
-        anims[0] = loadAnimationFromSD(runPaths, 6, 100, pw, ph);
+        anims[0] = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
         anims[1] = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
         anims[1].loop = false;
         lib.animSets[PlayerAnim] = (AnimationSet *)malloc(sizeof(AnimationSet));
@@ -106,9 +108,8 @@ class GameScene : public Scene {
 
         auto player = registry.create();
         registry.emplace<Player>(player);
-        registry.emplace<Position>(player, int16_t(10), int16_t(68));
+        registry.emplace<Position>(player, int16_t(10), int16_t(74));
         registry.emplace<Sprite>(player, lib.animSets[PlayerAnim]->w, lib.animSets[PlayerAnim]->h);
-        registry.emplace<Hitbox>(player, uint16_t(20), uint16_t(20), int8_t(5), int8_t(9));
         registry.emplace<AnimationState>(player, lib.animSets[PlayerAnim]);
         registry.emplace<Velocity>(player, int16_t(3), int16_t(0));
         registry.emplace<Gravity>(player);
