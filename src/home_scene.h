@@ -1,5 +1,6 @@
 #pragma once
 
+#include "clock_scene.h"
 #include "components.h"
 #include "scene.h"
 #include "systems.h"
@@ -14,12 +15,13 @@ class HomeScene : public Scene {
     void onButton(const ButtonEvent &e) {
         if (e.action != ButtonEvent::Action::Pressed)
             return;
-        mRegistry->ctx<SceneManager>().transition(nextScene);
+        if (e.button == ButtonEvent::Button::C) {
+            clockScene.prevScene = this;
+            mRegistry->ctx<SceneManager>().transition(&clockScene);
+        }
     }
 
   public:
-    Scene *nextScene{nullptr};
-
     void load(entt::registry &registry) override {
         mRegistry = &registry;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&HomeScene::onButton>(this);
