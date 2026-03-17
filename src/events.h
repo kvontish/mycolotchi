@@ -11,3 +11,6 @@ struct ButtonEvent {
 // Volatile flags written by the input task (Core 0),
 // read and cleared by pollInput (Core 1).
 extern volatile bool gBtnPressed[3];
+
+// Set by sleepIfInactive() after waking so pollInput discards the wake press.
+extern volatile bool gDiscardNextInput;

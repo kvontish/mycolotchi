@@ -12,6 +12,7 @@
 entt::registry registry;
 
 volatile bool gBtnPressed[3]{false, false, false};
+volatile bool gDiscardNextInput = false;
 
 void inputTask(void *) {
     for (;;) {

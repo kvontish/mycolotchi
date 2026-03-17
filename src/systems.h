@@ -17,6 +17,13 @@
 static uint32_t sLastActivityMs = 0;
 
 inline void pollInput(entt::registry &registry) {
+    if (gDiscardNextInput) {
+        gDiscardNextInput = false;
+        for (uint8_t i = 0; i < 3; i++)
+            gBtnPressed[i] = false;
+        return;
+    }
+
     auto &dispatcher = registry.ctx<entt::dispatcher>();
 
     for (uint8_t i = 0; i < 3; i++) {
@@ -46,6 +53,7 @@ inline void sleepIfInactive() {
     esp_light_sleep_start();
     // Execution resumes here after any touch
 
+    gDiscardNextInput = true;
     sLastActivityMs = millis();
     M5.Display.wakeup();
     M5.Display.setBrightness(brightness);
