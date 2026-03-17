@@ -11,8 +11,6 @@ class ClockScene : public Scene {
     char mTimeBuf[9]; // "HH:MM:SS\0"
 
     void onButton(const ButtonEvent &e) {
-        if (e.action != ButtonEvent::Action::Pressed)
-            return;
 
         if (e.button == ButtonEvent::Button::C)
             mRegistry->ctx<SceneManager>().transition(prevScene);

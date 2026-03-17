@@ -13,8 +13,6 @@ class HomeScene : public Scene {
     entt::registry *mRegistry{nullptr};
 
     void onButton(const ButtonEvent &e) {
-        if (e.action != ButtonEvent::Action::Pressed)
-            return;
         if (e.button == ButtonEvent::Button::C) {
             clockScene.prevScene = this;
             mRegistry->ctx<SceneManager>().transition(&clockScene);

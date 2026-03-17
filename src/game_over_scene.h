@@ -9,11 +9,7 @@ class GameOverScene : public Scene {
     entt::registry *mRegistry{nullptr};
     char mScoreText[24]{};
 
-    void onButton(const ButtonEvent &e) {
-        if (e.action != ButtonEvent::Action::Pressed)
-            return;
-        mRegistry->ctx<SceneManager>().transition(nextScene);
-    }
+    void onButton(const ButtonEvent &e) { mRegistry->ctx<SceneManager>().transition(nextScene); }
 
   public:
     Scene *nextScene{nullptr};

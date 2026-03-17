@@ -12,18 +12,25 @@
 
 entt::registry registry;
 
-volatile bool gBtnPressed[3]{false, false, false};
+volatile ButtonState gButtonState[3]{ButtonState::None, ButtonState::None, ButtonState::None};
 volatile bool gDiscardNextInput = false;
 
+static constexpr uint32_t kLongPressMs = 500;
+
 void inputTask(void *) {
+    static uint32_t pressStartMs[3]{0, 0, 0};
+    m5::Button_Class *btns[3]{&M5.BtnA, &M5.BtnB, &M5.BtnC};
+
     for (;;) {
         M5.update();
-        if (M5.BtnA.wasPressed())
-            gBtnPressed[0] = true;
-        if (M5.BtnB.wasPressed())
-            gBtnPressed[1] = true;
-        if (M5.BtnC.wasPressed())
-            gBtnPressed[2] = true;
+        for (uint8_t i = 0; i < 3; i++) {
+            if (btns[i]->wasPressed())
+                pressStartMs[i] = millis();
+            if (btns[i]->wasReleased()) {
+                gButtonState[i] =
+                    millis() - pressStartMs[i] >= kLongPressMs ? ButtonState::LongPressed : ButtonState::Pressed;
+            }
+        }
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

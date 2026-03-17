@@ -20,17 +20,18 @@ inline void pollInput(entt::registry &registry) {
     if (gDiscardNextInput) {
         gDiscardNextInput = false;
         for (uint8_t i = 0; i < 3; i++)
-            gBtnPressed[i] = false;
+            gButtonState[i] = ButtonState::None;
         return;
     }
 
     auto &dispatcher = registry.ctx<entt::dispatcher>();
 
     for (uint8_t i = 0; i < 3; i++) {
-        if (gBtnPressed[i]) {
-            gBtnPressed[i] = false;
+        if (gButtonState[i] != ButtonState::None) {
+            ButtonState action = gButtonState[i];
+            gButtonState[i] = ButtonState::None;
             sLastActivityMs = millis();
-            dispatcher.enqueue<ButtonEvent>({ButtonEvent::Button(i), ButtonEvent::Action::Pressed});
+            dispatcher.enqueue<ButtonEvent>({ButtonEvent::Button(i), action});
         }
     }
 

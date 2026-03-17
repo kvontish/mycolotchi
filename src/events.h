@@ -1,16 +1,15 @@
 #pragma once
 
-struct ButtonEvent {
-    enum class Button : uint8_t { A, B, C };
-    enum class Action : uint8_t { Pressed, Released };
-
-    Button button;
-    Action action;
-};
-
-// Volatile flags written by the input task (Core 0),
-// read and cleared by pollInput (Core 1).
-extern volatile bool gBtnPressed[3];
+// Volatile state written by the input task (Core 0), read and cleared by pollInput (Core 1).
+enum class ButtonState : uint8_t { None, Pressed, LongPressed };
+extern volatile ButtonState gButtonState[3];
 
 // Set by sleepIfInactive() after waking so pollInput discards the wake press.
 extern volatile bool gDiscardNextInput;
+
+struct ButtonEvent {
+    enum class Button : uint8_t { A, B, C };
+
+    Button button;
+    ButtonState action; // never ButtonState::None
+};

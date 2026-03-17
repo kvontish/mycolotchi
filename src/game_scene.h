@@ -11,8 +11,6 @@ class GameScene : public Scene {
     int16_t mNextSpawnX{200};
 
     void onButton(const ButtonEvent &e) {
-        if (e.action != ButtonEvent::Action::Pressed)
-            return;
 
         mRegistry->view<Player, Velocity>().each([this](entt::entity entity, Velocity &vel) {
             if (mRegistry->all_of<Grounded>(entity)) {

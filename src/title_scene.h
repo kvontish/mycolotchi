@@ -8,11 +8,7 @@
 class TitleScene : public Scene {
     entt::registry *mRegistry{nullptr};
 
-    void onButton(const ButtonEvent &e) {
-        if (e.action != ButtonEvent::Action::Pressed)
-            return;
-        mRegistry->ctx<SceneManager>().transition(nextScene);
-    }
+    void onButton(const ButtonEvent &e) { mRegistry->ctx<SceneManager>().transition(nextScene); }
 
   public:
     Scene *nextScene{nullptr};
