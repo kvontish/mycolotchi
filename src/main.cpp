@@ -33,7 +33,7 @@ void inputTask(void *) {
                     millis() - pressStartMs[i] >= kLongPressMs ? ButtonState::LongPressed : ButtonState::Pressed;
             }
         }
-        detectSteps(registry);
+        detectSteps();
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
@@ -76,6 +76,7 @@ void loop() {
     decayPetStats(registry);
     if (isDisplayDimmed())
         return;
+    syncSteps(registry);
     tickClock(registry);
     registry.ctx<SceneManager>().update(registry);
     if (auto *view = registry.ctx<SceneManager>().activeView())

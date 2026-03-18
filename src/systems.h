@@ -109,7 +109,11 @@ static constexpr uint32_t kMaxIntervalMs = 2000; // slowest plausible step (0.5 
 static constexpr uint8_t kRhythmBufSize = 3;     // intervals to average for gate
 static constexpr float kMaxRhythmCV2 = 0.20f;    // max CV² to keep gate open
 
-inline void detectSteps(entt::registry &registry) {
+static volatile uint32_t sDetectedSteps = 0;
+
+inline void syncSteps(entt::registry &registry) { registry.ctx<StepCounter>().steps = sDetectedSteps; }
+
+inline void detectSteps() {
     static float gravity = 1.0f;
     static float bandpass = 0.0f;
     static float prevBandpass = 0.0f;
@@ -166,11 +170,11 @@ inline void detectSteps(entt::registry &registry) {
                 if (cv2 <= kMaxRhythmCV2) {
                     if (!gateOpen) {
                         // Step 5: gate just opened — count all pending crossings + this one
-                        registry.ctx<StepCounter>().steps += pendingSteps + 1;
+                        sDetectedSteps += pendingSteps + 1;
                         pendingSteps = 0;
                         gateOpen = true;
                     } else {
-                        registry.ctx<StepCounter>().steps++;
+                        sDetectedSteps++;
                     }
                 } else {
                     // Rhythm broke — close gate, discard pending

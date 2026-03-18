@@ -42,7 +42,7 @@ struct Clock {
 };
 
 struct StepCounter {
-    volatile uint32_t steps{0}; // written on Core 0 (inputTask), read on Core 1 (loop)
+    uint32_t steps{0};
 };
 
 struct GameMap {
