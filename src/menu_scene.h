@@ -37,6 +37,7 @@ struct MenuState {
 // --- Menu tree ---
 
 static void menuPlay(entt::registry &r) { r.ctx<SceneManager>().transition(r.ctx<GameMap>().gameScene); }
+static void menuWalk(entt::registry &r) { r.ctx<SceneManager>().transition(r.ctx<GameMap>().walkScene); }
 static void menuStatus(entt::registry &r) { r.ctx<SceneManager>().pushView(r, r.ctx<GameMap>().statusView); }
 
 static void menuFeedMeal(entt::registry &r) {
@@ -57,10 +58,15 @@ static const MenuItem kMenuFeedItems[] = {
     {"Snack", nullptr, 0, menuFeedSnack},
 };
 
+static const MenuItem kMenuPlayItems[] = {
+    {"Game", nullptr, 0, menuPlay},
+    {"Walk", nullptr, 0, menuWalk},
+};
+
 static const MenuItem kMenuRootItems[] = {
     {"Status", nullptr, 0, menuStatus},
     {"Feed", kMenuFeedItems, 2, nullptr},
-    {"Play", nullptr, 0, menuPlay},
+    {"Play", kMenuPlayItems, 2, nullptr},
 };
 
 static const MenuItem kMenuRoot = {"Menu", kMenuRootItems, 3, nullptr};

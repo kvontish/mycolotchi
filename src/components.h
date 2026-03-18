@@ -41,16 +41,13 @@ struct Clock {
     uint32_t timestamp{0}; // Unix time, seconds since 1970-01-01
 };
 
-struct StepCounter {
-    uint32_t steps{0};
-};
-
 struct GameMap {
     Scene *homeScene{nullptr};
     Scene *titleScene{nullptr};
     Scene *gameScene{nullptr};
     Scene *clockScene{nullptr};
     Scene *menuScene{nullptr};
+    Scene *walkScene{nullptr};
     View *gameOverView{nullptr};
     View *statusView{nullptr};
 };

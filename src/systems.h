@@ -111,8 +111,6 @@ static constexpr float kMaxRhythmCV2 = 0.20f;    // max CV² to keep gate open
 
 static volatile uint32_t sDetectedSteps = 0;
 
-inline void syncSteps(entt::registry &registry) { registry.ctx<StepCounter>().steps = sDetectedSteps; }
-
 inline void detectSteps() {
     static float gravity = 1.0f;
     static float bandpass = 0.0f;
@@ -461,10 +459,6 @@ inline void showDebugOverlay(entt::registry &registry) {
     // FPS — top left
     canvas.setCursor(2, 2);
     canvas.printf("FPS: %u", fps);
-
-    // Steps — below FPS
-    canvas.setCursor(2, 12);
-    canvas.printf("STP: %lu", registry.ctx<StepCounter>().steps);
 
     // battery icon — top right
     if (batteryLevel >= 0) {
