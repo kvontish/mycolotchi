@@ -31,6 +31,7 @@ class WalkScene : public Scene {
   public:
     void load(entt::registry &registry) override {
         sDetectedSteps = 0;
+        sStepCountingActive = true;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&walkInputSystem>(&registry);
 
         auto &state = registry.set<WalkState>();
@@ -46,6 +47,7 @@ class WalkScene : public Scene {
     }
 
     void unload(entt::registry &registry) override {
+        sStepCountingActive = false;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&walkInputSystem>(&registry);
         registry.unset<WalkState>();
         registry.clear();

@@ -110,8 +110,12 @@ static constexpr uint8_t kRhythmBufSize = 3;     // intervals to average for gat
 static constexpr float kMaxRhythmCV2 = 0.20f;    // max CV² to keep gate open
 
 static volatile uint32_t sDetectedSteps = 0;
+static volatile bool sStepCountingActive = false;
 
 inline void detectSteps() {
+    if (!sStepCountingActive)
+        return;
+
     static float gravity = 1.0f;
     static float bandpass = 0.0f;
     static float prevBandpass = 0.0f;
