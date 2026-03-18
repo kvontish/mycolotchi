@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
-#include <esp_sleep.h>
 #include <vector>
 
 // =============================================================================
@@ -15,15 +14,9 @@
 // =============================================================================
 
 static uint32_t sLastActivityMs = 0;
+static bool sDisplayDimmed = false;
 
 inline void pollInput(entt::registry &registry) {
-    if (gDiscardNextInput) {
-        gDiscardNextInput = false;
-        for (uint8_t i = 0; i < 3; i++)
-            gButtonState[i] = ButtonState::None;
-        return;
-    }
-
     auto &dispatcher = registry.ctx<entt::dispatcher>();
 
     for (uint8_t i = 0; i < 3; i++) {
@@ -38,27 +31,35 @@ inline void pollInput(entt::registry &registry) {
     dispatcher.update<ButtonEvent>();
 }
 
-// FT6336 touch controller INT pin — fires low on any touch, usable as ext0 wake source
-static constexpr gpio_num_t kTouchIntPin = GPIO_NUM_39;
 static constexpr uint32_t kSleepTimeoutMs = 30000;
+static uint8_t sSavedBrightness = 128;
 
-inline void sleepIfInactive() {
-    if (millis() - sLastActivityMs < kSleepTimeoutMs)
-        return;
+inline void updateDisplayState() {
+    for (uint8_t i = 0; i < 3; i++) {
+        if (gButtonState[i] != ButtonState::None) {
+            sLastActivityMs = millis();
+            if (sDisplayDimmed)
+                gButtonState[i] = ButtonState::None;
+        }
+    }
 
-    uint8_t brightness = M5.Display.getBrightness();
-    M5.Display.setBrightness(0);
-    M5.Display.sleep();
+    bool inactive = millis() - sLastActivityMs >= kSleepTimeoutMs;
 
-    esp_sleep_enable_ext0_wakeup(kTouchIntPin, 0);
-    esp_light_sleep_start();
-    // Execution resumes here after any touch
-
-    gDiscardNextInput = true;
-    sLastActivityMs = millis();
-    M5.Display.wakeup();
-    M5.Display.setBrightness(brightness);
+    if (inactive && !sDisplayDimmed) {
+        sSavedBrightness = M5.Display.getBrightness();
+        M5.Display.setBrightness(0);
+        M5.Display.sleep();
+        setCpuFrequencyMhz(80);
+        sDisplayDimmed = true;
+    } else if (!inactive && sDisplayDimmed) {
+        setCpuFrequencyMhz(240);
+        M5.Display.wakeup();
+        M5.Display.setBrightness(sSavedBrightness);
+        sDisplayDimmed = false;
+    }
 }
+
+inline bool isDisplayDimmed() { return sDisplayDimmed; }
 
 // =============================================================================
 // Time
@@ -86,6 +87,37 @@ inline void tickClock(entt::registry &registry) {
     clock.month = d.month;
     clock.day = d.date;
     clock.timestamp = toUnixTime(clock.year, clock.month, clock.day, clock.hours, clock.minutes, clock.seconds);
+}
+
+// =============================================================================
+// Pedometer
+// =============================================================================
+
+static constexpr float kStepThreshold = 0.35f;   // g above filtered baseline to register a peak
+static constexpr uint32_t kStepCooldownMs = 400; // minimum ms between steps (~2.5 steps/sec max)
+
+inline void detectSteps(entt::registry &registry) {
+    static float filtered = 1.0f;
+    static bool inPeak = false;
+    static uint32_t lastStepMs = 0;
+
+    float ax, ay, az;
+    M5.Imu.getAccel(&ax, &ay, &az);
+    float mag = sqrtf(ax * ax + ay * ay + az * az);
+
+    // Low-pass filter tracks the resting baseline (~1g)
+    filtered = filtered * 0.95f + mag * 0.05f;
+
+    uint32_t now = millis();
+    float delta = mag - filtered;
+
+    if (!inPeak && delta > kStepThreshold && now - lastStepMs > kStepCooldownMs) {
+        registry.ctx<StepCounter>().steps++;
+        lastStepMs = now;
+        inPeak = true;
+    } else if (inPeak && delta < kStepThreshold * 0.5f) {
+        inPeak = false;
+    }
 }
 
 // =============================================================================
@@ -315,7 +347,11 @@ inline void showDebugOverlay(entt::registry &registry) {
 
     // FPS — top left
     canvas.setCursor(2, 2);
-    canvas.printf("FPS:%3u", fps);
+    canvas.printf("FPS: %u", fps);
+
+    // Steps — below FPS
+    canvas.setCursor(2, 12);
+    canvas.printf("STP: %lu", registry.ctx<StepCounter>().steps);
 
     // battery icon — top right
     if (batteryLevel >= 0) {

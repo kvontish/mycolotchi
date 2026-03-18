@@ -40,6 +40,10 @@ struct Clock {
     uint32_t timestamp{0}; // Unix time, seconds since 1970-01-01
 };
 
+struct StepCounter {
+    volatile uint32_t steps{0}; // written on Core 0 (inputTask), read on Core 1 (loop)
+};
+
 struct GameMap {
     Scene *homeScene{nullptr};
     Scene *titleScene{nullptr};

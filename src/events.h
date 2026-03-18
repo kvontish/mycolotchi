@@ -4,9 +4,6 @@
 enum class ButtonState : uint8_t { None, Pressed, LongPressed };
 extern volatile ButtonState gButtonState[3];
 
-// Set by sleepIfInactive() after waking so pollInput discards the wake press.
-extern volatile bool gDiscardNextInput;
-
 struct ButtonEvent {
     enum class Button : uint8_t { A, B, C };
 

@@ -14,7 +14,6 @@
 entt::registry registry;
 
 volatile ButtonState gButtonState[3]{ButtonState::None, ButtonState::None, ButtonState::None};
-volatile bool gDiscardNextInput = false;
 
 static constexpr uint32_t kLongPressMs = 500;
 
@@ -32,6 +31,7 @@ void inputTask(void *) {
                     millis() - pressStartMs[i] >= kLongPressMs ? ButtonState::LongPressed : ButtonState::Pressed;
             }
         }
+        detectSteps(registry);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
@@ -40,8 +40,6 @@ void setup() {
     M5.begin();
     Serial.begin(115200);
     SD.begin(4); // M5Core2 SD CS pin
-
-    xTaskCreatePinnedToCore(inputTask, "input", 2048, nullptr, 1, nullptr, 0);
 
     registry.set<entt::dispatcher>();
     registry.set<Camera>();
@@ -53,6 +51,8 @@ void setup() {
     registry.set<Clock>();
     tickClock(registry); // populate from RTC before first frame
 
+    registry.set<StepCounter>();
+
     auto &map = registry.set<GameMap>();
     map.homeScene = &homeScene;
     map.titleScene = &titleScene;
@@ -62,10 +62,14 @@ void setup() {
 
     registry.set<SceneManager>();
     registry.ctx<SceneManager>().transition(&homeScene);
+
+    xTaskCreatePinnedToCore(inputTask, "input", 2048, nullptr, 1, nullptr, 0);
 }
 
 void loop() {
-    sleepIfInactive();
+    updateDisplayState();
+    if (isDisplayDimmed())
+        return;
     tickClock(registry);
     registry.ctx<SceneManager>().update(registry);
     render(registry);
