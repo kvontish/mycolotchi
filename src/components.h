@@ -3,6 +3,7 @@
 #include <M5Unified.h>
 
 struct Scene; // forward declaration for GameMap
+struct View;  // forward declaration for GameMap
 
 struct Animation {
     M5Canvas **frames{nullptr}; // heap-allocated array of M5Canvas sprites, one per frame
@@ -48,9 +49,10 @@ struct GameMap {
     Scene *homeScene{nullptr};
     Scene *titleScene{nullptr};
     Scene *gameScene{nullptr};
-    Scene *gameOverScene{nullptr};
     Scene *clockScene{nullptr};
     Scene *menuScene{nullptr};
+    View *gameOverView{nullptr};
+    View *statusView{nullptr};
 };
 
 struct Hitbox {
@@ -74,6 +76,11 @@ struct Position {
     int8_t scaleY{1};
 };
 
+struct Pet {
+    uint8_t hunger{100};    // 0 = starving, 100 = full
+    uint8_t happiness{100}; // 0 = miserable, 100 = ecstatic
+};
+
 struct Score {
     uint32_t value{0};
 };
@@ -93,6 +100,10 @@ struct Tiled {
 struct Velocity {
     int16_t x{0};
     int16_t y{0};
+};
+
+struct ViewOwner {
+    View *view{nullptr}; // links an entity to the View overlay that owns it
 };
 
 // --- Tags ---

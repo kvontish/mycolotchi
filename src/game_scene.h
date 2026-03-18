@@ -24,6 +24,8 @@ struct SpawnState {
 // --- Systems ---
 
 inline void gameInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    if (registry->ctx<SceneManager>().isViewActive())
+        return;
     registry->view<Player, Velocity>().each([registry](entt::entity entity, Velocity &vel) {
         if (registry->all_of<Grounded>(entity)) {
             vel.y = -12;
@@ -124,7 +126,7 @@ inline void checkCollisions(entt::registry &registry) {
     });
 
     if (hit)
-        registry.ctx<SceneManager>().transition(registry.ctx<GameMap>().gameOverScene);
+        registry.ctx<SceneManager>().pushView(registry, registry.ctx<GameMap>().gameOverView);
 }
 
 inline void collectCoins(entt::registry &registry) {

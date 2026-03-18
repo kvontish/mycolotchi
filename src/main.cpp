@@ -5,6 +5,7 @@
 #include "home_scene.h"
 #include "menu_scene.h"
 #include "scene.h"
+#include "status_scene.h"
 #include "systems.h"
 #include "title_scene.h"
 #include <M5Unified.h>
@@ -53,14 +54,16 @@ void setup() {
     tickClock(registry); // populate from RTC before first frame
 
     registry.set<StepCounter>();
+    registry.set<Pet>();
 
     auto &map = registry.set<GameMap>();
     map.homeScene = &homeScene;
     map.titleScene = &titleScene;
     map.gameScene = &gameScene;
-    map.gameOverScene = &gameOverScene;
     map.clockScene = &clockScene;
     map.menuScene = &menuScene;
+    map.gameOverView = &gameOverView;
+    map.statusView = &statusView;
 
     registry.set<SceneManager>();
     registry.ctx<SceneManager>().transition(&homeScene);
@@ -70,11 +73,15 @@ void setup() {
 
 void loop() {
     updateDisplayState();
+    decayPetStats(registry);
     if (isDisplayDimmed())
         return;
     tickClock(registry);
     registry.ctx<SceneManager>().update(registry);
-    render(registry);
+    if (auto *view = registry.ctx<SceneManager>().activeView())
+        render(registry, view);
+    else
+        render(registry);
     // renderHitboxes(registry);
     showDebugOverlay(registry);
     present(registry);

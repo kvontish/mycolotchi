@@ -37,14 +37,28 @@ struct MenuState {
 // --- Menu tree ---
 
 static void menuPlay(entt::registry &r) { r.ctx<SceneManager>().transition(r.ctx<GameMap>().gameScene); }
+static void menuStatus(entt::registry &r) { r.ctx<SceneManager>().pushView(r, r.ctx<GameMap>().statusView); }
+
+static void menuFeedMeal(entt::registry &r) {
+    auto &pet = r.ctx<Pet>();
+    pet.hunger = (uint8_t)min((int)pet.hunger + 20, 100);
+    r.ctx<SceneManager>().transition(r.ctx<GameMap>().homeScene);
+}
+
+static void menuFeedSnack(entt::registry &r) {
+    auto &pet = r.ctx<Pet>();
+    pet.happiness = (uint8_t)min((int)pet.happiness + 10, 100);
+    pet.hunger = (uint8_t)min((int)pet.hunger + 5, 100);
+    r.ctx<SceneManager>().transition(r.ctx<GameMap>().homeScene);
+}
 
 static const MenuItem kMenuFeedItems[] = {
-    {"Meal", nullptr, 0, nullptr},
-    {"Snack", nullptr, 0, nullptr},
+    {"Meal", nullptr, 0, menuFeedMeal},
+    {"Snack", nullptr, 0, menuFeedSnack},
 };
 
 static const MenuItem kMenuRootItems[] = {
-    {"Status", nullptr, 0, nullptr},
+    {"Status", nullptr, 0, menuStatus},
     {"Feed", kMenuFeedItems, 2, nullptr},
     {"Play", nullptr, 0, menuPlay},
 };
@@ -81,6 +95,8 @@ inline void refreshMenuLabels(entt::registry &registry) {
 }
 
 inline void menuInputSystem(entt::registry *registry, const ButtonEvent &e) {
+    if (registry->ctx<SceneManager>().isViewActive())
+        return;
     auto &state = registry->ctx<MenuState>();
     const MenuItem *node = state.currentNode();
 

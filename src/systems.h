@@ -192,6 +192,33 @@ inline void detectSteps(entt::registry &registry) {
 }
 
 // =============================================================================
+// Pet
+// =============================================================================
+
+static constexpr uint32_t kHungerDecayIntervalMs = 5UL * 60UL * 1000UL;     // -1 hunger per 5 min
+static constexpr uint32_t kHappinessDecayIntervalMs = 10UL * 60UL * 1000UL; // -1 happiness per 10 min
+
+inline void decayPetStats(entt::registry &registry) {
+    static uint32_t lastHungerDecayMs = 0;
+    static uint32_t lastHappinessDecayMs = 0;
+
+    uint32_t now = millis();
+    auto &pet = registry.ctx<Pet>();
+
+    if (now - lastHungerDecayMs >= kHungerDecayIntervalMs) {
+        if (pet.hunger > 0)
+            pet.hunger--;
+        lastHungerDecayMs = now;
+    }
+
+    if (now - lastHappinessDecayMs >= kHappinessDecayIntervalMs) {
+        if (pet.happiness > 0)
+            pet.happiness--;
+        lastHappinessDecayMs = now;
+    }
+}
+
+// =============================================================================
 // Simulation
 // =============================================================================
 
@@ -321,21 +348,27 @@ inline void drawEntity(entt::registry &registry,
     drawSprite(canvas, sprite, baseX, baseY, pos.scaleX, pos.scaleY);
 }
 
-inline void render(entt::registry &registry) {
+// viewFilter == nullptr → render only scene entities (no ViewOwner)
+// viewFilter != nullptr → render only entities owned by that view
+inline void render(entt::registry &registry, View *viewFilter = nullptr) {
     const auto &camera = registry.ctx<Camera>();
     auto &canvas = registry.ctx<M5Canvas>();
 
     canvas.clear();
 
-    // Entities are drawn in reverse creation order — later-created entities appear behind earlier ones.
-    // Z-order is controlled by the order entities are created in each scene's load().
-    auto view = registry.view<Position, Sprite>();
-    std::for_each(view.rbegin(), view.rend(), [&](entt::entity e) {
-        drawEntity(registry, camera, canvas, e, view.get<Position>(e), view.get<Sprite>(e));
+    auto allSprites = registry.view<Position, Sprite>();
+    std::for_each(allSprites.rbegin(), allSprites.rend(), [&](entt::entity e) {
+        const ViewOwner *owner = registry.try_get<ViewOwner>(e);
+        bool matches = (viewFilter == nullptr) ? (owner == nullptr) : (owner != nullptr && owner->view == viewFilter);
+        if (matches)
+            drawEntity(registry, camera, canvas, e, allSprites.get<Position>(e), allSprites.get<Sprite>(e));
     });
 
-    auto labelView = registry.view<Position, Label>();
-    labelView.each([&canvas](const Position &pos, const Label &label) {
+    registry.view<Position, Label>().each([&](entt::entity e, const Position &pos, const Label &label) {
+        const ViewOwner *owner = registry.try_get<ViewOwner>(e);
+        bool matches = (viewFilter == nullptr) ? (owner == nullptr) : (owner != nullptr && owner->view == viewFilter);
+        if (!matches)
+            return;
         canvas.setTextSize(label.size);
         canvas.setTextDatum(MC_DATUM);
         canvas.setTextColor(label.color);
@@ -347,29 +380,33 @@ inline void present(entt::registry &registry) {
     const auto &camera = registry.ctx<Camera>();
     auto &canvas = registry.ctx<M5Canvas>();
 
-    const int32_t dstX = (M5.Display.width() - camera.w * camera.scale) / 2;
-    const int32_t dstY = (M5.Display.height() - camera.h * camera.scale) / 2;
+    const uint16_t scaledW = min((uint32_t)camera.w * camera.scale, (uint32_t)M5.Display.width());
+    const uint16_t scaledH = min((uint32_t)camera.h * camera.scale, (uint32_t)M5.Display.height());
+
+    const int32_t dstX = (M5.Display.width() - scaledW) / 2;
+    const int32_t dstY = (M5.Display.height() - scaledH) / 2;
     const uint16_t *src = static_cast<const uint16_t *>(canvas.getBuffer());
 
     static uint16_t rowBuf[320]; // one scaled row, bounded by display width
 
     M5.Display.startWrite();
-    M5.Display.setWindow(dstX, dstY, dstX + camera.w * camera.scale - 1, dstY + camera.h * camera.scale - 1);
+    M5.Display.setWindow(dstX, dstY, dstX + scaledW - 1, dstY + scaledH - 1);
 
     for (uint16_t sy = 0; sy < camera.h; sy++) {
         const uint16_t *srcRow = src + sy * camera.w;
 
-        // Expand each pixel horizontally by `scale`
+        // Expand each pixel horizontally by `scale`, stopping at scaledW
         uint16_t *p = rowBuf;
-        for (uint16_t sx = 0; sx < camera.w; sx++) {
+        uint16_t written = 0;
+        for (uint16_t sx = 0; sx < camera.w && written < scaledW; sx++) {
             uint16_t px = srcRow[sx];
-            for (uint8_t s = 0; s < camera.scale; s++)
+            for (uint8_t s = 0; s < camera.scale && written < scaledW; s++, written++)
                 *p++ = px;
         }
 
         // Repeat the same expanded row `scale` times for vertical scaling
         for (uint8_t s = 0; s < camera.scale; s++)
-            M5.Display.writePixels(rowBuf, camera.w * camera.scale);
+            M5.Display.writePixels(rowBuf, scaledW);
     }
 
     M5.Display.endWrite();
