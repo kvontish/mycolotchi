@@ -37,7 +37,9 @@ inline void walkAndBounce(entt::registry &registry) {
 }
 
 inline void homeInputSystem(entt::registry *registry, const ButtonEvent &e) {
-    if (e.button == ButtonEvent::Button::C)
+    if (e.button == ButtonEvent::Button::A)
+        registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().menuScene);
+    else if (e.button == ButtonEvent::Button::C)
         registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().clockScene);
 }
 

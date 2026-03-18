@@ -3,6 +3,7 @@
 #include "game_over_scene.h"
 #include "game_scene.h"
 #include "home_scene.h"
+#include "menu_scene.h"
 #include "scene.h"
 #include "systems.h"
 #include "title_scene.h"
@@ -59,6 +60,7 @@ void setup() {
     map.gameScene = &gameScene;
     map.gameOverScene = &gameOverScene;
     map.clockScene = &clockScene;
+    map.menuScene = &menuScene;
 
     registry.set<SceneManager>();
     registry.ctx<SceneManager>().transition(&homeScene);

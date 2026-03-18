@@ -14,7 +14,7 @@ struct GameOverState {
 // --- Systems ---
 
 inline void gameOverInputSystem(entt::registry *registry, const ButtonEvent &e) {
-    registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().gameScene);
+    registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().homeScene);
 }
 
 class GameOverScene : public Scene {
@@ -38,8 +38,10 @@ class GameOverScene : public Scene {
 
         auto prompt = registry.create();
         registry.emplace<Position>(prompt, int16_t(80), int16_t(90));
-        registry.emplace<Label>(prompt, "tap to retry", uint16_t(TFT_LIGHTGREY), uint8_t(1));
+        registry.emplace<Label>(prompt, "tap to continue", uint16_t(TFT_LIGHTGREY), uint8_t(1));
     }
+
+    void update(entt::registry &registry) override { pollInput(registry); }
 
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&gameOverInputSystem>(&registry);

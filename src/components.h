@@ -50,6 +50,7 @@ struct GameMap {
     Scene *gameScene{nullptr};
     Scene *gameOverScene{nullptr};
     Scene *clockScene{nullptr};
+    Scene *menuScene{nullptr};
 };
 
 struct Hitbox {
