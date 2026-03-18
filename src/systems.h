@@ -65,7 +65,7 @@ inline bool isDisplayDimmed() { return sDisplayDimmed; }
 // Time
 // =============================================================================
 
-static uint32_t toUnixTime(uint16_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t mi, uint8_t s) {
+inline uint32_t toUnixTime(uint16_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t mi, uint8_t s) {
     static const uint16_t kDaysBeforeMonth[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     uint16_t y0 = y - 1;
     uint32_t days = (y - 1970) * 365UL + (y0 / 4 - 1969 / 4) - (y0 / 100 - 1969 / 100) + (y0 / 400 - 1969 / 400) +
@@ -229,12 +229,12 @@ inline void decayPetStats(entt::registry &registry) {
 // --- Physics ---
 
 inline void physics(entt::registry &registry) {
-    const int16_t gravity = 1;
+    const int16_t kGravityAccel = 1;
 
     auto view = registry.view<Position, Velocity>();
-    view.each([&registry, gravity](entt::entity entity, Position &pos, Velocity &vel) {
+    view.each([&registry, kGravityAccel](entt::entity entity, Position &pos, Velocity &vel) {
         if (registry.all_of<Gravity>(entity))
-            vel.y += gravity;
+            vel.y += kGravityAccel;
         pos.x += vel.x;
         pos.y += vel.y;
     });
@@ -352,6 +352,11 @@ inline void drawEntity(entt::registry &registry,
     drawSprite(canvas, sprite, baseX, baseY, pos.scaleX, pos.scaleY);
 }
 
+inline bool ownedBy(entt::registry &registry, entt::entity e, View *viewFilter) {
+    const ViewOwner *owner = registry.try_get<ViewOwner>(e);
+    return (owner ? owner->view : nullptr) == viewFilter;
+}
+
 // viewFilter == nullptr → render only scene entities (no ViewOwner)
 // viewFilter != nullptr → render only entities owned by that view
 inline void render(entt::registry &registry, View *viewFilter = nullptr) {
@@ -362,16 +367,12 @@ inline void render(entt::registry &registry, View *viewFilter = nullptr) {
 
     auto allSprites = registry.view<Position, Sprite>();
     std::for_each(allSprites.rbegin(), allSprites.rend(), [&](entt::entity e) {
-        const ViewOwner *owner = registry.try_get<ViewOwner>(e);
-        bool matches = (viewFilter == nullptr) ? (owner == nullptr) : (owner != nullptr && owner->view == viewFilter);
-        if (matches)
+        if (ownedBy(registry, e, viewFilter))
             drawEntity(registry, camera, canvas, e, allSprites.get<Position>(e), allSprites.get<Sprite>(e));
     });
 
     registry.view<Position, Label>().each([&](entt::entity e, const Position &pos, const Label &label) {
-        const ViewOwner *owner = registry.try_get<ViewOwner>(e);
-        bool matches = (viewFilter == nullptr) ? (owner == nullptr) : (owner != nullptr && owner->view == viewFilter);
-        if (!matches)
+        if (!ownedBy(registry, e, viewFilter))
             return;
         canvas.setTextSize(label.size);
         canvas.setTextDatum(MC_DATUM);
@@ -396,7 +397,7 @@ inline void present(entt::registry &registry) {
     M5.Display.startWrite();
     M5.Display.setWindow(dstX, dstY, dstX + scaledW - 1, dstY + scaledH - 1);
 
-    for (uint16_t sy = 0; sy < camera.h; sy++) {
+    for (uint16_t sy = 0; sy * camera.scale < scaledH; sy++) {
         const uint16_t *srcRow = src + sy * camera.w;
 
         // Expand each pixel horizontally by `scale`, stopping at scaledW
