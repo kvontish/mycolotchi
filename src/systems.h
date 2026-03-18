@@ -93,30 +93,101 @@ inline void tickClock(entt::registry &registry) {
 // Pedometer
 // =============================================================================
 
-static constexpr float kStepThreshold = 0.35f;   // g above filtered baseline to register a peak
-static constexpr uint32_t kStepCooldownMs = 400; // minimum ms between steps (~2.5 steps/sec max)
+// Pokéwalker-style pedometer:
+//   1. Gravity removal via very-slow LP (~0.05 Hz) → isolates dynamic acceleration
+//   2. Bandpass LP (~4 Hz) on gravity-removed signal → walking band (1-3 Hz)
+//   3. Downward zero-crossing of bandpass → one candidate step per crossing
+//   4. Rhythm gate: buffer the last N inter-crossing intervals; open gate when
+//      coefficient-of-variation² drops below threshold (consistent cadence)
+//   5. Retroactive counting: when gate opens flush all pending crossings as steps;
+//      while open, count each crossing; close on rhythm break or long pause
+
+static constexpr float kGravityAlpha = 0.003f;   // ~0.05 Hz LP for gravity estimate
+static constexpr float kBandpassAlpha = 0.22f;   // ~4 Hz LP for walking band
+static constexpr uint32_t kMinIntervalMs = 250;  // fastest plausible step (4 Hz)
+static constexpr uint32_t kMaxIntervalMs = 2000; // slowest plausible step (0.5 Hz)
+static constexpr uint8_t kRhythmBufSize = 3;     // intervals to average for gate
+static constexpr float kMaxRhythmCV2 = 0.20f;    // max CV² to keep gate open
 
 inline void detectSteps(entt::registry &registry) {
-    static float filtered = 1.0f;
-    static bool inPeak = false;
-    static uint32_t lastStepMs = 0;
+    static float gravity = 1.0f;
+    static float bandpass = 0.0f;
+    static float prevBandpass = 0.0f;
+    static uint32_t lastCrossMs = 0;
+    static uint32_t intervals[kRhythmBufSize]{0, 0, 0};
+    static uint8_t intervalIdx = 0;
+    static uint8_t intervalFill = 0; // how many intervals are populated
+    static uint8_t pendingSteps = 0; // crossings waiting for rhythm confirmation
+    static bool gateOpen = false;
 
     float ax, ay, az;
     M5.Imu.getAccel(&ax, &ay, &az);
     float mag = sqrtf(ax * ax + ay * ay + az * az);
 
-    // Low-pass filter tracks the resting baseline (~1g)
-    filtered = filtered * 0.95f + mag * 0.05f;
+    // Step 1: gravity estimate (very slow LP)
+    gravity = gravity * (1.0f - kGravityAlpha) + mag * kGravityAlpha;
 
-    uint32_t now = millis();
-    float delta = mag - filtered;
+    // Step 2: bandpass (LP on gravity-removed signal)
+    float dynamic = mag - gravity;
+    prevBandpass = bandpass;
+    bandpass = bandpass * (1.0f - kBandpassAlpha) + dynamic * kBandpassAlpha;
 
-    if (!inPeak && delta > kStepThreshold && now - lastStepMs > kStepCooldownMs) {
-        registry.ctx<StepCounter>().steps++;
-        lastStepMs = now;
-        inPeak = true;
-    } else if (inPeak && delta < kStepThreshold * 0.5f) {
-        inPeak = false;
+    // Step 3: downward zero-crossing detection
+    if (prevBandpass >= 0.0f && bandpass < 0.0f) {
+        uint32_t now = millis();
+        uint32_t interval = now - lastCrossMs;
+
+        if (lastCrossMs == 0 || interval < kMinIntervalMs || interval > kMaxIntervalMs) {
+            // Invalid crossing — reset rhythm state
+            gateOpen = false;
+            pendingSteps = 0;
+            intervalFill = 0;
+        } else {
+            // Step 4: update rhythm buffer
+            intervals[intervalIdx] = interval;
+            intervalIdx = (intervalIdx + 1) % kRhythmBufSize;
+            if (intervalFill < kRhythmBufSize)
+                intervalFill++;
+
+            if (intervalFill == kRhythmBufSize) {
+                // Compute mean and CV² over buffered intervals
+                float sum = 0.0f;
+                for (uint8_t i = 0; i < kRhythmBufSize; i++)
+                    sum += (float)intervals[i];
+                float mean = sum / kRhythmBufSize;
+                float var = 0.0f;
+                for (uint8_t i = 0; i < kRhythmBufSize; i++) {
+                    float d = (float)intervals[i] - mean;
+                    var += d * d;
+                }
+                var /= kRhythmBufSize;
+                float cv2 = (mean > 0.0f) ? var / (mean * mean) : 1.0f;
+
+                if (cv2 <= kMaxRhythmCV2) {
+                    if (!gateOpen) {
+                        // Step 5: gate just opened — count all pending crossings + this one
+                        registry.ctx<StepCounter>().steps += pendingSteps + 1;
+                        pendingSteps = 0;
+                        gateOpen = true;
+                    } else {
+                        registry.ctx<StepCounter>().steps++;
+                    }
+                } else {
+                    // Rhythm broke — close gate, discard pending
+                    gateOpen = false;
+                    pendingSteps = 0;
+                }
+            } else {
+                // Not enough history yet — accumulate as pending
+                pendingSteps++;
+            }
+        }
+
+        lastCrossMs = now;
+    } else if (gateOpen && lastCrossMs > 0 && millis() - lastCrossMs > kMaxIntervalMs) {
+        // Stepped too long ago — close gate
+        gateOpen = false;
+        pendingSteps = 0;
     }
 }
 
