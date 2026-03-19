@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
+#include <esp_sleep.h>
 #include <vector>
 
 // =============================================================================
@@ -15,6 +16,8 @@
 
 static uint32_t sLastActivityMs = 0;
 static bool sDisplayDimmed = false;
+static volatile uint32_t sDetectedSteps = 0;
+static volatile bool sStepCountingActive = false;
 
 inline void pollInput(entt::registry &registry) {
     auto &dispatcher = registry.ctx<entt::dispatcher>();
@@ -31,35 +34,78 @@ inline void pollInput(entt::registry &registry) {
     dispatcher.update<ButtonEvent>();
 }
 
+// FT6336 touch controller INT pin — fires low on any touch, usable as ext0 wake source
+static constexpr gpio_num_t kTouchIntPin = GPIO_NUM_39;
 static constexpr uint32_t kSleepTimeoutMs = 30000;
 static uint8_t sSavedBrightness = 128;
 
-inline void updateDisplayState() {
-    for (uint8_t i = 0; i < 3; i++) {
-        if (gButtonState[i] != ButtonState::None) {
-            sLastActivityMs = millis();
-            if (sDisplayDimmed)
-                gButtonState[i] = ButtonState::None;
-        }
-    }
+inline bool isDisplayDimmed() { return sDisplayDimmed; }
 
-    bool inactive = millis() - sLastActivityMs >= kSleepTimeoutMs;
-
-    if (inactive && !sDisplayDimmed) {
-        sSavedBrightness = M5.Display.getBrightness();
-        M5.Display.setBrightness(0);
-        M5.Display.sleep();
-        setCpuFrequencyMhz(80);
-        sDisplayDimmed = true;
-    } else if (!inactive && sDisplayDimmed) {
-        setCpuFrequencyMhz(240);
-        M5.Display.wakeup();
-        M5.Display.setBrightness(sSavedBrightness);
-        sDisplayDimmed = false;
-    }
+// Walk mode: dim display and reduce CPU — Core 0 keeps running for pedometer.
+// loop() returns early while dimmed; wakeup is detected via button activity.
+inline void enterDimSleep() {
+    if (sDisplayDimmed)
+        return;
+    sSavedBrightness = M5.Display.getBrightness();
+    M5.Display.setBrightness(0);
+    M5.Display.sleep();
+    setCpuFrequencyMhz(80);
+    sDisplayDimmed = true;
 }
 
-inline bool isDisplayDimmed() { return sDisplayDimmed; }
+inline void discardButtonStates() {
+    for (uint8_t i = 0; i < 3; i++)
+        gButtonState[i] = ButtonState::None;
+}
+
+inline void exitDimSleep() {
+    if (!sDisplayDimmed)
+        return;
+    setCpuFrequencyMhz(240);
+    M5.Display.wakeup();
+    M5.Display.setBrightness(sSavedBrightness);
+    sDisplayDimmed = false;
+    discardButtonStates(); // throw away waking button presses
+}
+
+// Idle mode: full light sleep — both cores suspended until touch wakes the device.
+// Blocks until wakeup, then restores display and discards the wake press.
+inline void enterLightSleep() {
+    // Dim the display
+    sSavedBrightness = M5.Display.getBrightness();
+    M5.Display.setBrightness(0);
+    M5.Display.sleep();
+
+    // Put the device to sleep
+    esp_sleep_enable_ext0_wakeup(kTouchIntPin, 0);
+    esp_light_sleep_start();
+
+    // On wakeup, logic starts from here
+    sLastActivityMs = millis();
+    M5.Display.wakeup();
+    M5.Display.setBrightness(sSavedBrightness);
+    discardButtonStates(); // throw away waking button presses
+}
+
+inline void updateDisplayState() {
+    // Get the last activity
+    for (uint8_t i = 0; i < 3; i++) {
+        if (gButtonState[i] != ButtonState::None)
+            sLastActivityMs = millis();
+    }
+    bool inactive = millis() - sLastActivityMs >= kSleepTimeoutMs;
+
+    if (inactive) {
+        // Counting steps requires dim (pseudo) sleep
+        if (sStepCountingActive)
+            enterDimSleep();
+        // Otherwise use true device light sleep
+        else
+            enterLightSleep();
+    } else {
+        exitDimSleep();
+    }
+}
 
 // =============================================================================
 // Time
@@ -108,9 +154,6 @@ static constexpr uint32_t kMinIntervalMs = 250;  // fastest plausible step (4 Hz
 static constexpr uint32_t kMaxIntervalMs = 2000; // slowest plausible step (0.5 Hz)
 static constexpr uint8_t kRhythmBufSize = 3;     // intervals to average for gate
 static constexpr float kMaxRhythmCV2 = 0.20f;    // max CV² to keep gate open
-
-static volatile uint32_t sDetectedSteps = 0;
-static volatile bool sStepCountingActive = false;
 
 inline void detectSteps() {
     if (!sStepCountingActive)
