@@ -254,16 +254,24 @@ inline void decayPetStats(entt::registry &registry) {
     uint32_t now = millis();
     auto &pet = registry.ctx<Pet>();
 
-    if (now - lastHungerDecayMs >= kHungerDecayIntervalMs) {
-        if (pet.hunger > 0)
-            pet.hunger--;
+    // Initialize on first call to avoid a burst of decay equal to device uptime
+    if (lastHungerDecayMs == 0)
         lastHungerDecayMs = now;
+    if (lastHappinessDecayMs == 0)
+        lastHappinessDecayMs = now;
+
+    uint32_t hungerTicks = (now - lastHungerDecayMs) / kHungerDecayIntervalMs;
+    if (hungerTicks > 0) {
+        pet.hunger = (hungerTicks >= pet.hunger) ? 0 : pet.hunger - (uint8_t)hungerTicks;
+        lastHungerDecayMs += hungerTicks * kHungerDecayIntervalMs;
     }
 
-    if (now - lastHappinessDecayMs >= kHappinessDecayIntervalMs) {
-        if (pet.happiness > 0)
-            pet.happiness--;
-        lastHappinessDecayMs = now;
+    // Happiness decays twice as fast when starving — classic tamagotchi behavior
+    uint32_t happinessInterval = (pet.hunger == 0) ? kHappinessDecayIntervalMs / 2 : kHappinessDecayIntervalMs;
+    uint32_t happinessTicks = (now - lastHappinessDecayMs) / happinessInterval;
+    if (happinessTicks > 0) {
+        pet.happiness = (happinessTicks >= pet.happiness) ? 0 : pet.happiness - (uint8_t)happinessTicks;
+        lastHappinessDecayMs += happinessTicks * happinessInterval;
     }
 }
 
