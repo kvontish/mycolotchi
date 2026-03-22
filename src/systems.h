@@ -142,7 +142,8 @@ inline void tickClock(entt::registry &registry) {
 // Pokéwalker-style pedometer:
 //   1. Gravity removal via very-slow LP (~0.05 Hz) → isolates dynamic acceleration
 //   2. Bandpass LP (~4 Hz) on gravity-removed signal → walking band (1-3 Hz)
-//   3. Downward zero-crossing of bandpass → one candidate step per crossing
+//   3. Both-direction zero-crossing of bandpass → one candidate step per crossing
+//      (each half-cycle = one step; downward-only was counting strides, not steps)
 //   4. Rhythm gate: buffer the last N inter-crossing intervals; open gate when
 //      coefficient-of-variation² drops below threshold (consistent cadence)
 //   5. Retroactive counting: when gate opens flush all pending crossings as steps;
@@ -181,8 +182,10 @@ inline void detectSteps() {
     prevBandpass = bandpass;
     bandpass = bandpass * (1.0f - kBandpassAlpha) + dynamic * kBandpassAlpha;
 
-    // Step 3: downward zero-crossing detection
-    if (prevBandpass >= 0.0f && bandpass < 0.0f) {
+    // Step 3: zero-crossing detection (both directions = one per step, not per stride)
+    bool downCross = prevBandpass >= 0.0f && bandpass < 0.0f;
+    bool upCross = prevBandpass <= 0.0f && bandpass > 0.0f;
+    if (downCross || upCross) {
         uint32_t now = millis();
         uint32_t interval = now - lastCrossMs;
 
