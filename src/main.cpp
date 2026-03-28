@@ -74,7 +74,7 @@ void setup() {
 
 void loop() {
     updateDisplayState();
-    decayPetStats(registry);
+    updatePetStats(registry);
     if (isDisplayDimmed())
         return;
     tickClock(registry);

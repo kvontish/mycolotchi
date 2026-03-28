@@ -40,22 +40,21 @@ static void menuPlay(entt::registry &r) { r.ctx<SceneManager>().transition(r.ctx
 static void menuWalk(entt::registry &r) { r.ctx<SceneManager>().transition(r.ctx<GameMap>().walkScene); }
 static void menuStatus(entt::registry &r) { r.ctx<SceneManager>().pushView(r, r.ctx<GameMap>().statusView); }
 
-static void menuFeedMeal(entt::registry &r) {
+static void menuTendSubstrate(entt::registry &r) {
     auto &pet = r.ctx<Pet>();
-    pet.hunger = (uint8_t)min((int)pet.hunger + 20, 100);
+    pet.substrate = (uint8_t)min((int)pet.substrate + 20, 100);
     r.ctx<SceneManager>().transition(r.ctx<GameMap>().homeScene);
 }
 
-static void menuFeedSnack(entt::registry &r) {
+static void menuTendMist(entt::registry &r) {
     auto &pet = r.ctx<Pet>();
-    pet.happiness = (uint8_t)min((int)pet.happiness + 10, 100);
-    pet.hunger = (uint8_t)min((int)pet.hunger + 5, 100);
+    pet.moisture = (uint8_t)min((int)pet.moisture + 15, 100);
     r.ctx<SceneManager>().transition(r.ctx<GameMap>().homeScene);
 }
 
-static const MenuItem kMenuFeedItems[] = {
-    {"Meal", nullptr, 0, menuFeedMeal},
-    {"Snack", nullptr, 0, menuFeedSnack},
+static const MenuItem kMenuTendItems[] = {
+    {"Substrate", nullptr, 0, menuTendSubstrate},
+    {"Mist", nullptr, 0, menuTendMist},
 };
 
 static const MenuItem kMenuPlayItems[] = {
@@ -65,7 +64,7 @@ static const MenuItem kMenuPlayItems[] = {
 
 static const MenuItem kMenuRootItems[] = {
     {"Status", nullptr, 0, menuStatus},
-    {"Feed", kMenuFeedItems, 2, nullptr},
+    {"Tend", kMenuTendItems, 2, nullptr},
     {"Play", kMenuPlayItems, 2, nullptr},
 };
 
