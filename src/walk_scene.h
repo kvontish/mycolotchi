@@ -8,8 +8,8 @@
 // --- Components ---
 
 struct WalkState {
-    uint32_t steps{0};
-    char stepsText[24]{};
+    uint32_t     steps{0};
+    char         stepsText[24]{};
     entt::entity stepsLabel{entt::null};
 };
 
@@ -23,14 +23,13 @@ inline void syncSteps(entt::registry &registry) {
 }
 
 inline void walkInputSystem(entt::registry *r, const ButtonEvent &e) {
-    if (e.button == ButtonEvent::Button::C)
-        r->ctx<SceneManager>().transition(r->ctx<GameMap>().homeScene);
+    if (e.button == ButtonEvent::Button::C) r->ctx<SceneManager>().transition(r->ctx<GameMap>().homeScene);
 }
 
 class WalkScene : public Scene {
   public:
     void load(entt::registry &registry) override {
-        sDetectedSteps = 0;
+        sDetectedSteps      = 0;
         sStepCountingActive = true;
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&walkInputSystem>(&registry);
 

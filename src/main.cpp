@@ -18,22 +18,40 @@ entt::registry registry;
 
 volatile ButtonState gButtonState[3]{ButtonState::None, ButtonState::None, ButtonState::None};
 
+// Touch state: x, y coordinates, and a flag indicating a new touch occurred
+volatile bool    gTouchDetected = false;
+volatile int16_t gTouchX        = 0;
+volatile int16_t gTouchY        = 0;
+
 static constexpr uint32_t kLongPressMs = 500;
 
 void inputTask(void *) {
-    static uint32_t pressStartMs[3]{0, 0, 0};
+    static uint32_t   pressStartMs[3]{0, 0, 0};
+    static uint32_t   lastTouchMs = 0;
     m5::Button_Class *btns[3]{&M5.BtnA, &M5.BtnB, &M5.BtnC};
 
     for (;;) {
         M5.update();
+
+        // Button input
         for (uint8_t i = 0; i < 3; i++) {
-            if (btns[i]->wasPressed())
-                pressStartMs[i] = millis();
+            if (btns[i]->wasPressed()) pressStartMs[i] = millis();
             if (btns[i]->wasReleased()) {
                 gButtonState[i] =
                     millis() - pressStartMs[i] >= kLongPressMs ? ButtonState::LongPressed : ButtonState::Pressed;
             }
         }
+
+        // Touch input — debounce to prevent duplicate events within 50ms
+        auto     touch = M5.Touch.getDetail();
+        uint32_t now   = millis();
+        if (touch.state == m5::touch_state_t::touch && now - lastTouchMs >= 50) {
+            gTouchX        = touch.x;
+            gTouchY        = touch.y;
+            gTouchDetected = true;
+            lastTouchMs    = now;
+        }
+
         detectSteps();
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -56,15 +74,15 @@ void setup() {
 
     registry.set<Pet>();
 
-    auto &map = registry.set<GameMap>();
-    map.homeScene = &homeScene;
-    map.titleScene = &titleScene;
-    map.gameScene = &gameScene;
-    map.clockScene = &clockScene;
-    map.menuScene = &menuScene;
-    map.walkScene = &walkScene;
+    auto &map        = registry.set<GameMap>();
+    map.homeScene    = &homeScene;
+    map.titleScene   = &titleScene;
+    map.gameScene    = &gameScene;
+    map.clockScene   = &clockScene;
+    map.menuScene    = &menuScene;
+    map.walkScene    = &walkScene;
     map.gameOverView = &gameOverView;
-    map.statusView = &statusView;
+    map.statusView   = &statusView;
 
     registry.set<SceneManager>();
     registry.ctx<SceneManager>().transition(&homeScene);
@@ -75,9 +93,10 @@ void setup() {
 void loop() {
     updateDisplayState();
     updatePetStats(registry);
-    if (isDisplayDimmed())
-        return;
+    if (isDisplayDimmed()) return;
     tickClock(registry);
+    pollInput(registry);
+    pollTouch(registry);
     registry.ctx<SceneManager>().update(registry);
     if (auto *view = registry.ctx<SceneManager>().activeView())
         render(registry, view);

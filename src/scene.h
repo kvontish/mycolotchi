@@ -21,10 +21,10 @@ struct SceneManager {
     Scene *next{nullptr};
 
     static constexpr uint8_t kMaxViewDepth = 4;
-    View *viewStack[kMaxViewDepth]{};
-    uint8_t viewDepth{0};
-    bool justPopped{false}; // stays true until the end of the current update tick
-    bool pendingPop{false};
+    View                    *viewStack[kMaxViewDepth]{};
+    uint8_t                  viewDepth{0};
+    bool                     justPopped{false}; // stays true until the end of the current update tick
+    bool                     pendingPop{false};
 
     void transition(Scene *scene) { next = scene; }
 
@@ -55,10 +55,9 @@ struct SceneManager {
         if (next) {
             while (viewDepth > 0)
                 viewStack[--viewDepth]->unload(registry);
-            if (current)
-                current->unload(registry);
+            if (current) current->unload(registry);
             current = next;
-            next = nullptr;
+            next    = nullptr;
             current->load(registry);
         }
         if (viewDepth > 0)

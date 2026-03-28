@@ -12,9 +12,9 @@ struct GameAssets {
     AnimationSet *player{nullptr};
     AnimationSet *coin{nullptr};
     AnimationSet *obstacle{nullptr};
-    M5Canvas *bg{nullptr};
-    M5Canvas *mid{nullptr};
-    M5Canvas *ground{nullptr};
+    M5Canvas     *bg{nullptr};
+    M5Canvas     *mid{nullptr};
+    M5Canvas     *ground{nullptr};
 };
 
 struct SpawnState {
@@ -24,8 +24,7 @@ struct SpawnState {
 // --- Systems ---
 
 inline void gameInputSystem(entt::registry *registry, const ButtonEvent &e) {
-    if (registry->ctx<SceneManager>().isViewActive())
-        return;
+    if (registry->ctx<SceneManager>().isViewActive()) return;
     registry->view<Player, Velocity>().each([registry](entt::entity entity, Velocity &vel) {
         if (registry->all_of<Grounded>(entity)) {
             vel.y = -12;
@@ -39,22 +38,21 @@ inline void updatePlayerAnimation(entt::registry &registry) {
         uint8_t desired = registry.all_of<Grounded>(e) ? 0 : 1;
         if (state.currentAnimation != desired) {
             state.currentAnimation = desired;
-            state.currentFrame = 0;
-            state.lastFrameMs = millis();
+            state.currentFrame     = 0;
+            state.lastFrameMs      = millis();
         }
     });
 }
 
 inline void spawn(entt::registry &registry) {
-    auto &state = registry.ctx<SpawnState>();
-    const auto &camera = registry.ctx<Camera>();
-    const auto &assets = registry.ctx<GameAssets>();
-    AnimationSet *coinAnimSet = assets.coin;
+    auto         &state           = registry.ctx<SpawnState>();
+    const auto   &camera          = registry.ctx<Camera>();
+    const auto   &assets          = registry.ctx<GameAssets>();
+    AnimationSet *coinAnimSet     = assets.coin;
     AnimationSet *obstacleAnimSet = assets.obstacle;
-    int16_t spawnEdge = camera.x + (int16_t)camera.w;
+    int16_t       spawnEdge       = camera.x + (int16_t)camera.w;
 
-    if (spawnEdge < state.nextX)
-        return;
+    if (spawnEdge < state.nextX) return;
 
     auto e = registry.create();
     registry.emplace<Despawnable>(e);
@@ -81,8 +79,7 @@ inline void despawn(entt::registry &registry) {
 
     std::vector<entt::entity> toDestroy;
     registry.view<Despawnable, Position, Sprite>().each([&](entt::entity e, const Position &pos, const Sprite &sprite) {
-        if (pos.x + (int16_t)sprite.w < camera.x - 16)
-            toDestroy.push_back(e);
+        if (pos.x + (int16_t)sprite.w < camera.x - 16) toDestroy.push_back(e);
     });
 
     for (auto e : toDestroy)
@@ -90,12 +87,12 @@ inline void despawn(entt::registry &registry) {
 }
 
 static void getBounds(const Position &pos,
-                      const Sprite &sprite,
-                      const Hitbox *hb,
-                      int16_t &x,
-                      int16_t &y,
-                      int16_t &w,
-                      int16_t &h) {
+                      const Sprite   &sprite,
+                      const Hitbox   *hb,
+                      int16_t        &x,
+                      int16_t        &y,
+                      int16_t        &w,
+                      int16_t        &h) {
     if (hb) {
         x = pos.x + hb->ox;
         y = pos.y + hb->oy;
@@ -110,7 +107,7 @@ static void getBounds(const Position &pos,
 }
 
 inline void checkCollisions(entt::registry &registry) {
-    auto players = registry.view<Player, Position, Sprite>();
+    auto players   = registry.view<Player, Position, Sprite>();
     auto obstacles = registry.view<Obstacle, Position, Sprite>();
 
     bool hit = false;
@@ -120,18 +117,16 @@ inline void checkCollisions(entt::registry &registry) {
         obstacles.each([&](entt::entity oe, const Position &op, const Sprite &os) {
             int16_t ox, oy, ow, oh;
             getBounds(op, os, registry.try_get<Hitbox>(oe), ox, oy, ow, oh);
-            if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy)
-                hit = true;
+            if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy) hit = true;
         });
     });
 
-    if (hit)
-        registry.ctx<SceneManager>().pushView(registry, registry.ctx<GameMap>().gameOverView);
+    if (hit) registry.ctx<SceneManager>().pushView(registry, registry.ctx<GameMap>().gameOverView);
 }
 
 inline void collectCoins(entt::registry &registry) {
     auto players = registry.view<Player, Position, Sprite>();
-    auto coins = registry.view<Coin, Position, Sprite>();
+    auto coins   = registry.view<Coin, Position, Sprite>();
 
     std::vector<entt::entity> collected;
     players.each([&](entt::entity pe, const Position &pp, const Sprite &ps) {
@@ -140,8 +135,7 @@ inline void collectCoins(entt::registry &registry) {
         coins.each([&](entt::entity coin, const Position &cp, const Sprite &cs) {
             int16_t cx, cy, cw, ch;
             getBounds(cp, cs, registry.try_get<Hitbox>(coin), cx, cy, cw, ch);
-            if (px < cx + cw && px + pw > cx && py < cy + ch && py + ph > cy)
-                collected.push_back(coin);
+            if (px < cx + cw && px + pw > cx && py < cy + ch && py + ph > cy) collected.push_back(coin);
         });
     });
 
@@ -203,13 +197,13 @@ class GameScene : public Scene {
             "/Characters/Players/Shroom/Sprites/run/player-run-2.png",
         };
 
-        uint16_t pw = 22, ph = 22;
+        uint16_t   pw = 22, ph = 22;
         Animation *anims = (Animation *)malloc(2 * sizeof(Animation));
-        anims[0] = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
-        anims[1] = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
-        anims[1].loop = false;
-        assets.player = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *assets.player = {anims, 2, pw, ph};
+        anims[0]         = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
+        anims[1]         = loadAnimationFromSD(jumpPaths, 2, 150, pw, ph);
+        anims[1].loop    = false;
+        assets.player    = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.player   = {anims, 2, pw, ph};
 
         static const char *gemPaths[] = {
             "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-1.png",
@@ -218,11 +212,11 @@ class GameScene : public Scene {
             "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-4.png",
             "/Props Items and VFX/Sunnyland items/Sprites/gem-cc/gem-5.png",
         };
-        uint16_t gw, gh;
+        uint16_t   gw, gh;
         Animation *coinAnims = (Animation *)malloc(sizeof(Animation));
-        coinAnims[0] = loadAnimationFromSD(gemPaths, 5, 100, gw, gh);
-        assets.coin = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *assets.coin = {coinAnims, 1, gw, gh};
+        coinAnims[0]         = loadAnimationFromSD(gemPaths, 5, 100, gw, gh);
+        assets.coin          = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.coin         = {coinAnims, 1, gw, gh};
 
         static const char *fireballPaths[] = {
             "/Props Items and VFX/fireball-cc/fireball-1.png",
@@ -231,11 +225,11 @@ class GameScene : public Scene {
             "/Props Items and VFX/fireball-cc/fireball-4.png",
             "/Props Items and VFX/fireball-cc/fireball-5.png",
         };
-        uint16_t fw, fh;
+        uint16_t   fw, fh;
         Animation *obstacleAnims = (Animation *)malloc(sizeof(Animation));
-        obstacleAnims[0] = loadAnimationFromSD(fireballPaths, 5, 80, fw, fh);
-        assets.obstacle = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *assets.obstacle = {obstacleAnims, 1, fw, fh};
+        obstacleAnims[0]         = loadAnimationFromSD(fireballPaths, 5, 80, fw, fh);
+        assets.obstacle          = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.obstacle         = {obstacleAnims, 1, fw, fh};
 
         auto player = registry.create();
         registry.emplace<Player>(player);
@@ -246,9 +240,9 @@ class GameScene : public Scene {
         registry.emplace<Gravity>(player);
         registry.emplace<Grounded>(player);
 
-        auto &camera = registry.ctx<Camera>();
-        camera.x = 0;
-        camera.y = 0;
+        auto &camera      = registry.ctx<Camera>();
+        camera.x          = 0;
+        camera.y          = 0;
         auto cameraTarget = registry.create();
         registry.emplace<CameraTarget>(cameraTarget);
         registry.emplace<Position>(cameraTarget, camera.x, camera.y);

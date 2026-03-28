@@ -7,6 +7,11 @@ extern volatile ButtonState gButtonState[3];
 struct ButtonEvent {
     enum class Button : uint8_t { A, B, C };
 
-    Button button;
+    Button      button;
     ButtonState action; // never ButtonState::None
+};
+
+struct TouchEvent {
+    int16_t x;
+    int16_t y;
 };

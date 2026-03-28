@@ -10,8 +10,7 @@
 inline M5Canvas *loadSpriteFromSD(const char *path, uint16_t &outW, uint16_t &outH) {
     // PNG IHDR chunk stores width and height as big-endian uint32 at bytes 16-23
     File f = SD.open(path);
-    if (!f)
-        return nullptr;
+    if (!f) return nullptr;
     f.seek(16);
     uint32_t w = 0, h = 0;
     for (int i = 0; i < 4; i++)
@@ -41,13 +40,13 @@ inline M5Canvas *loadSpriteFromSD(const char *path, uint16_t &outW, uint16_t &ou
 // Loads multiple PNGs from the SD card into a heap-allocated Animation.
 // outW and outH are set from the first frame. Caller must free via freeAnimationSet().
 inline Animation loadAnimationFromSD(const char *const *paths,
-                                     uint8_t count,
-                                     uint16_t frameDurationMs,
-                                     uint16_t &outW,
-                                     uint16_t &outH) {
+                                     uint8_t            count,
+                                     uint16_t           frameDurationMs,
+                                     uint16_t          &outW,
+                                     uint16_t          &outH) {
     M5Canvas **frames = (M5Canvas **)malloc(count * sizeof(M5Canvas *));
-    outW = 0;
-    outH = 0;
+    outW              = 0;
+    outH              = 0;
     for (uint8_t i = 0; i < count; i++) {
         uint16_t w, h;
         frames[i] = loadSpriteFromSD(paths[i], w, h);
@@ -60,8 +59,7 @@ inline Animation loadAnimationFromSD(const char *const *paths,
 }
 
 inline void freeAnimationSet(AnimationSet *&set) {
-    if (!set)
-        return;
+    if (!set) return;
     for (uint8_t i = 0; i < set->animationCount; i++) {
         Animation &anim = set->animations[i];
         for (uint8_t f = 0; f < anim.frameCount; f++) {
@@ -76,8 +74,7 @@ inline void freeAnimationSet(AnimationSet *&set) {
 }
 
 inline void freeSprite(M5Canvas *&canvas) {
-    if (!canvas)
-        return;
+    if (!canvas) return;
     canvas->deleteSprite();
     delete canvas;
     canvas = nullptr;

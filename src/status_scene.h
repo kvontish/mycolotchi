@@ -18,23 +18,21 @@ struct StatusState {
 
 // --- Constants ---
 
-static constexpr int16_t  kStatusBarX      = 10;
-static constexpr uint16_t kStatusBarMaxW   = 140;
-static constexpr uint16_t kStatusBarH      = 7;
-static constexpr uint16_t kSegW            = kStatusBarMaxW / kFogSegments; // 14px per segment
-static constexpr uint16_t kSegFillW        = kSegW - 1;                     // 1px gap between segments
-static constexpr uint16_t kCursorW         = 2;
-static constexpr uint16_t kCursorH         = kStatusBarH + 2;
+static constexpr int16_t  kStatusBarX    = 10;
+static constexpr uint16_t kStatusBarMaxW = 140;
+static constexpr uint16_t kStatusBarH    = 7;
+static constexpr uint16_t kSegW          = kStatusBarMaxW / kFogSegments; // 14px per segment
+static constexpr uint16_t kSegFillW      = kSegW - 1;                     // 1px gap between segments
+static constexpr uint16_t kCursorW       = 2;
+static constexpr uint16_t kCursorH       = kStatusBarH + 2;
 
-static constexpr int16_t kSubstrateBarY    = 36;
-static constexpr int16_t kMoistureBarY     = 60;
-static constexpr int16_t kHappinessBarY    = 84;
+static constexpr int16_t kSubstrateBarY = 36;
+static constexpr int16_t kMoistureBarY  = 60;
+static constexpr int16_t kHappinessBarY = 84;
 
 static uint16_t statusBarColor(uint8_t value) {
-    if (value > 50)
-        return TFT_GREEN;
-    if (value > 20)
-        return TFT_YELLOW;
+    if (value > 50) return TFT_GREEN;
+    if (value > 20) return TFT_YELLOW;
     return TFT_RED;
 }
 
@@ -42,60 +40,69 @@ static uint16_t statusBarColor(uint8_t value) {
 static uint16_t fogSegColor(uint8_t bucket, uint8_t idealLo, uint8_t idealHi, uint8_t largeDev) {
     uint8_t mid = bucket * 10 + 5;
     uint8_t dev = rangeDeviation(mid, idealLo, idealHi);
-    if (dev == 0)            return TFT_GREEN;
-    if (dev <= largeDev)     return TFT_YELLOW;
+    if (dev == 0) return TFT_GREEN;
+    if (dev <= largeDev) return TFT_YELLOW;
     return TFT_RED;
 }
 
 // --- Systems ---
 
 inline void updateStatusBars(entt::registry &registry) {
-    const auto &pet   = registry.ctx<Pet>();
-    const auto &state = registry.ctx<StatusState>();
-    const Species &sp = *pet.species;
+    const auto    &pet   = registry.ctx<Pet>();
+    const auto    &state = registry.ctx<StatusState>();
+    const Species &sp    = *pet.species;
 
     // Fog-of-war bars: color each segment based on revealed/ideal-range state
-    auto updateFogBar = [&](const entt::entity segs[], entt::entity cursor,
-                             uint8_t value, uint16_t seen,
-                             uint8_t idealLo, uint8_t idealHi, uint8_t largeDev) {
+    auto updateFogBar = [&](const entt::entity segs[],
+                            entt::entity       cursor,
+                            uint8_t            value,
+                            uint16_t           seen,
+                            uint8_t            idealLo,
+                            uint8_t            idealHi,
+                            uint8_t            largeDev) {
         for (uint8_t i = 0; i < kFogSegments; i++) {
-            uint16_t color = (seen & (1u << i))
-                ? fogSegColor(i, idealLo, idealHi, largeDev)
-                : uint16_t(TFT_DARKGREY);
+            uint16_t color = (seen & (1u << i)) ? fogSegColor(i, idealLo, idealHi, largeDev) : uint16_t(TFT_DARKGREY);
             registry.get<Sprite>(segs[i]).color = color;
         }
         // Cursor: position at current value
-        int16_t cx = kStatusBarX + (int16_t)(value * kStatusBarMaxW / 100) - kCursorW / 2;
+        int16_t cx                       = kStatusBarX + (int16_t)(value * kStatusBarMaxW / 100) - kCursorW / 2;
         registry.get<Position>(cursor).x = cx;
     };
 
-    updateFogBar(state.substrateSegs, state.substrateCursor,
-                 pet.substrate, pet.substrateSeen,
-                 sp.substrateIdealLo, sp.substrateIdealHi, sp.substrateLargeDev);
+    updateFogBar(state.substrateSegs,
+                 state.substrateCursor,
+                 pet.substrate,
+                 pet.substrateSeen,
+                 sp.substrateIdealLo,
+                 sp.substrateIdealHi,
+                 sp.substrateLargeDev);
 
-    updateFogBar(state.moistureSegs, state.moistureCursor,
-                 pet.moisture, pet.moistureSeen,
-                 sp.moistureIdealLo, sp.moistureIdealHi, sp.moistureLargeDev);
+    updateFogBar(state.moistureSegs,
+                 state.moistureCursor,
+                 pet.moisture,
+                 pet.moistureSeen,
+                 sp.moistureIdealLo,
+                 sp.moistureIdealHi,
+                 sp.moistureLargeDev);
 
     // Simple fill bar for happiness
-    auto &happinessSprite    = registry.get<Sprite>(state.happinessFill);
-    happinessSprite.w        = (uint16_t)((uint32_t)pet.happiness * kStatusBarMaxW / 100);
-    happinessSprite.color    = statusBarColor(pet.happiness);
+    auto &happinessSprite = registry.get<Sprite>(state.happinessFill);
+    happinessSprite.w     = (uint16_t)((uint32_t)pet.happiness * kStatusBarMaxW / 100);
+    happinessSprite.color = statusBarColor(pet.happiness);
 }
 
 // --- Input ---
 
 inline void statusInputSystem(entt::registry *r, const ButtonEvent &e) {
-    if (e.button == ButtonEvent::Button::C)
-        r->ctx<SceneManager>().popView();
+    if (e.button == ButtonEvent::Button::C) r->ctx<SceneManager>().popView();
 }
 
 // Helper: create the 10 segment entities and 1 cursor entity for a fog-of-war bar.
 static void createFogBar(entt::registry &registry,
-                          View *view,
-                          entt::entity segs[],
-                          entt::entity &cursor,
-                          int16_t barY) {
+                         View           *view,
+                         entt::entity    segs[],
+                         entt::entity   &cursor,
+                         int16_t         barY) {
     for (uint8_t i = 0; i < kFogSegments; i++) {
         segs[i] = registry.create();
         registry.emplace<ViewOwner>(segs[i], view);
@@ -118,7 +125,7 @@ class StatusView : public View {
         // Sprite creation order matters: rbegin/rend iterates oldest-first (drawn first = behind).
         // So the black background must be the OLDEST sprite entity — created first.
         const auto &camera = registry.ctx<Camera>();
-        auto bg = registry.create();
+        auto        bg     = registry.create();
         registry.emplace<ViewOwner>(bg, this);
         registry.emplace<Position>(bg, int16_t(0), int16_t(0), 0.0f);
         registry.emplace<Sprite>(bg, camera.w, camera.h, nullptr, uint16_t(TFT_BLACK));
@@ -175,8 +182,7 @@ class StatusView : public View {
 
         std::vector<entt::entity> toDestroy;
         registry.view<ViewOwner>().each([&](entt::entity e, const ViewOwner &owner) {
-            if (owner.view == this)
-                toDestroy.push_back(e);
+            if (owner.view == this) toDestroy.push_back(e);
         });
         registry.destroy(toDestroy.begin(), toDestroy.end());
 

@@ -10,9 +10,13 @@
 
 struct HomeAssets {
     AnimationSet *shroom{nullptr};
-    M5Canvas *bg{nullptr};
-    M5Canvas *mid{nullptr};
-    M5Canvas *ground{nullptr};
+    M5Canvas     *bg{nullptr};
+    M5Canvas     *mid{nullptr};
+    M5Canvas     *ground{nullptr};
+};
+
+struct HomeSporeSpawner {
+    uint32_t lastSpawnMs{0};
 };
 
 // --- Systems ---
@@ -36,6 +40,71 @@ inline void walkAndBounce(entt::registry &registry) {
     });
 }
 
+inline void spawnSpores(entt::registry &registry) {
+    const auto &pet     = registry.ctx<Pet>();
+    auto       &spawner = registry.ctx<HomeSporeSpawner>();
+    uint32_t    now     = millis();
+
+    // Base interval: generate one spore per spore generation interval from stat system
+    // At minimum mycelium: sporeBaseMs (5 min); higher mycelium = faster (proportional)
+    const Species &sp            = *pet.species;
+    uint32_t       sporeInterval = sp.sporeBaseMs / (1 + pet.mycelium / sp.sporeMyceliumDiv);
+
+    if (now - spawner.lastSpawnMs >= sporeInterval) {
+        // Count spore entities currently on screen to prevent clutter
+        uint32_t sporeCount = 0;
+        registry.view<Spore>().each([&](entt::entity e) { sporeCount++; });
+
+        if (sporeCount < 50) { // cap visual spore entities at 50
+            auto e = registry.create();
+            registry.emplace<Spore>(e);
+            registry.emplace<Position>(e, int16_t(random(20, 140)), int16_t(random(50, 80)));
+            registry.emplace<Sprite>(e, uint16_t(8), uint16_t(8), nullptr, uint16_t(TFT_WHITE));
+        }
+        spawner.lastSpawnMs = now;
+    }
+}
+
+inline void homeTouchSystem(entt::registry *registry, const TouchEvent &e) {
+    auto       &pet    = registry->ctx<Pet>();
+    const auto &camera = registry->ctx<Camera>();
+
+    // Convert touch coordinates from screen space to camera space
+    int16_t displayW = M5.Display.width();
+    int16_t displayH = M5.Display.height();
+    int16_t scaledW  = camera.w * camera.scale;
+    int16_t scaledH  = camera.h * camera.scale;
+    int16_t offsetX  = (displayW - scaledW) / 2;
+    int16_t offsetY  = (displayH - scaledH) / 2;
+
+    // Only process touches within the camera viewport
+    if (e.x < offsetX || e.x >= offsetX + scaledW || e.y < offsetY || e.y >= offsetY + scaledH) return;
+
+    // Convert display coordinates to camera coordinates
+    int16_t cameraX = (e.x - offsetX) / camera.scale;
+    int16_t cameraY = (e.y - offsetY) / camera.scale;
+
+    // Check collision with spores and collect
+    std::vector<entt::entity> collected;
+    registry->view<Spore, Position, Sprite>().each(
+        [&](entt::entity spore, const Position &sporePos, const Sprite &sporeSprite) {
+        int16_t sx = sporePos.x;
+        int16_t sy = sporePos.y;
+        int16_t sw = sporeSprite.w;
+        int16_t sh = sporeSprite.h;
+
+        // Check if touch is within spore bounds
+        if (cameraX >= sx && cameraX < sx + sw && cameraY >= sy && cameraY < sy + sh) {
+            collected.push_back(spore);
+        }
+    });
+
+    for (auto entity : collected) {
+        registry->destroy(entity);
+        pet.spores++;
+    }
+}
+
 inline void homeInputSystem(entt::registry *registry, const ButtonEvent &e) {
     if (e.button == ButtonEvent::Button::A)
         registry->ctx<SceneManager>().transition(registry->ctx<GameMap>().menuScene);
@@ -47,7 +116,9 @@ class HomeScene : public Scene {
   public:
     void load(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().connect<&homeInputSystem>(&registry);
+        registry.ctx<entt::dispatcher>().sink<TouchEvent>().connect<&homeTouchSystem>(&registry);
 
+        registry.set<HomeSporeSpawner>();
         auto &assets = registry.set<HomeAssets>();
 
         uint16_t bgW, bgH;
@@ -84,15 +155,15 @@ class HomeScene : public Scene {
             "/Characters/Players/Shroom/Sprites/run/player-run-7.png",
             "/Characters/Players/Shroom/Sprites/run/player-run-8.png",
         };
-        uint16_t pw, ph;
+        uint16_t   pw, ph;
         Animation *anims = (Animation *)malloc(sizeof(Animation));
-        anims[0] = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
-        assets.shroom = (AnimationSet *)malloc(sizeof(AnimationSet));
-        *assets.shroom = {anims, 1, pw, ph};
+        anims[0]         = loadAnimationFromSD(runPaths, 8, 100, pw, ph);
+        assets.shroom    = (AnimationSet *)malloc(sizeof(AnimationSet));
+        *assets.shroom   = {anims, 1, pw, ph};
 
         auto &camera = registry.ctx<Camera>();
-        camera.x = 0;
-        camera.y = 0;
+        camera.x     = 0;
+        camera.y     = 0;
 
         // Mushroom starts at x=10, grounded at y=74 (ground hitbox top 96 - sprite height 22)
         auto shroom = registry.create();
@@ -105,17 +176,20 @@ class HomeScene : public Scene {
 
     void unload(entt::registry &registry) override {
         registry.ctx<entt::dispatcher>().sink<ButtonEvent>().disconnect<&homeInputSystem>(&registry);
+        registry.ctx<entt::dispatcher>().sink<TouchEvent>().disconnect<&homeTouchSystem>(&registry);
         auto &assets = registry.ctx<HomeAssets>();
         freeAnimationSet(assets.shroom);
         freeSprite(assets.bg);
         freeSprite(assets.mid);
         freeSprite(assets.ground);
         registry.unset<HomeAssets>();
+        registry.unset<HomeSporeSpawner>();
         registry.clear();
     }
 
     void update(entt::registry &registry) override {
         pollInput(registry);
+        spawnSpores(registry);
         walkAndBounce(registry);
         animateSprites(registry);
     }

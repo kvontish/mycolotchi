@@ -26,12 +26,11 @@ class GameOverView : public View {
         auto &camera = registry.ctx<Camera>();
         camera.x = camera.y = 0; // reset camera position on game over
 
-        auto &state = registry.set<GameOverState>();
+        auto    &state = registry.set<GameOverState>();
         uint32_t score = 0;
-        if (auto *s = registry.try_ctx<Score>())
-            score = s->value;
+        if (auto *s = registry.try_ctx<Score>()) score = s->value;
 
-        auto &pet = registry.ctx<Pet>();
+        auto &pet     = registry.ctx<Pet>();
         pet.happiness = (uint8_t)min((int)pet.happiness + (int)score, 100);
         snprintf(state.scoreText, sizeof(state.scoreText), "score: %lu", score);
 
@@ -56,8 +55,7 @@ class GameOverView : public View {
 
         std::vector<entt::entity> toDestroy;
         registry.view<ViewOwner>().each([&](entt::entity e, const ViewOwner &owner) {
-            if (owner.view == this)
-                toDestroy.push_back(e);
+            if (owner.view == this) toDestroy.push_back(e);
         });
         registry.destroy(toDestroy.begin(), toDestroy.end());
 

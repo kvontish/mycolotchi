@@ -19,6 +19,11 @@ static bool              sDisplayDimmed      = false;
 static volatile uint32_t sDetectedSteps      = 0;
 static volatile bool     sStepCountingActive = false;
 
+// Touch state (written by inputTask, read by pollTouch)
+extern volatile bool    gTouchDetected;
+extern volatile int16_t gTouchX;
+extern volatile int16_t gTouchY;
+
 inline void pollInput(entt::registry &registry) {
     auto &dispatcher = registry.ctx<entt::dispatcher>();
 
@@ -32,6 +37,20 @@ inline void pollInput(entt::registry &registry) {
     }
 
     dispatcher.update<ButtonEvent>();
+}
+
+inline void pollTouch(entt::registry &registry) {
+    auto &dispatcher = registry.ctx<entt::dispatcher>();
+
+    if (gTouchDetected) {
+        int16_t x       = gTouchX;
+        int16_t y       = gTouchY;
+        gTouchDetected  = false;
+        sLastActivityMs = millis();
+        dispatcher.enqueue<TouchEvent>({x, y});
+    }
+
+    dispatcher.update<TouchEvent>();
 }
 
 // FT6336 touch controller INT pin — fires low on any touch, usable as ext0 wake source
