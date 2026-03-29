@@ -45,23 +45,27 @@ inline void spawnSpores(entt::registry &registry) {
     auto       &spawner = registry.ctx<HomeSporeSpawner>();
     uint32_t    now     = millis();
 
-    // Base interval: generate one spore per spore generation interval from stat system
-    // At minimum mycelium: sporeBaseMs (5 min); higher mycelium = faster (proportional)
+    if (spawner.lastSpawnMs == 0) {
+        spawner.lastSpawnMs = now;
+        return;
+    }
+
     const Species &sp            = *pet.species;
     uint32_t       sporeInterval = sp.sporeBaseMs / (1 + pet.mycelium / sp.sporeMyceliumDiv);
 
-    if (now - spawner.lastSpawnMs >= sporeInterval) {
-        // Count spore entities currently on screen to prevent clutter
+    uint32_t ticks = (now - spawner.lastSpawnMs) / sporeInterval;
+    if (ticks > 0) {
         uint32_t sporeCount = 0;
-        registry.view<Spore>().each([&](entt::entity e) { sporeCount++; });
+        registry.view<Spore>().each([&](entt::entity) { sporeCount++; });
 
-        if (sporeCount < 50) { // cap visual spore entities at 50
+        uint32_t toSpawn = min(ticks, (uint32_t)(3u - min(3u, sporeCount)));
+        for (uint32_t i = 0; i < toSpawn; i++) {
             auto e = registry.create();
             registry.emplace<Spore>(e);
             registry.emplace<Position>(e, int16_t(random(20, 140)), int16_t(random(50, 80)));
             registry.emplace<Sprite>(e, uint16_t(8), uint16_t(8), nullptr, uint16_t(TFT_WHITE));
         }
-        spawner.lastSpawnMs = now;
+        spawner.lastSpawnMs += ticks * sporeInterval;
     }
 }
 
@@ -93,8 +97,10 @@ inline void homeTouchSystem(entt::registry *registry, const TouchEvent &e) {
         int16_t sw = sporeSprite.w;
         int16_t sh = sporeSprite.h;
 
-        // Check if touch is within spore bounds
-        if (cameraX >= sx && cameraX < sx + sw && cameraY >= sy && cameraY < sy + sh) {
+        // Check if touch is within spore bounds (8px padding in camera space for tap tolerance)
+        static constexpr int16_t kTapPad = 8;
+        if (cameraX >= sx - kTapPad && cameraX < sx + sw + kTapPad && cameraY >= sy - kTapPad &&
+            cameraY < sy + sh + kTapPad) {
             collected.push_back(spore);
         }
     });
