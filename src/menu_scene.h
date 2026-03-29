@@ -163,10 +163,7 @@ class MenuScene : public Scene {
         registry.clear();
     }
 
-    void update(entt::registry &registry) override {
-        pollInput(registry);
-        refreshMenuLabels(registry);
-    }
+    void update(entt::registry &registry) override { refreshMenuLabels(registry); }
 };
 
 inline MenuScene menuScene;

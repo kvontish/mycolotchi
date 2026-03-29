@@ -189,10 +189,7 @@ class StatusView : public View {
         registry.unset<StatusState>();
     }
 
-    void update(entt::registry &registry) override {
-        pollInput(registry);
-        updateStatusBars(registry);
-    }
+    void update(entt::registry &registry) override { updateStatusBars(registry); }
 };
 
 inline StatusView statusView;

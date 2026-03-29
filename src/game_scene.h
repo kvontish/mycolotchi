@@ -264,7 +264,6 @@ class GameScene : public Scene {
     }
 
     void update(entt::registry &registry) override {
-        pollInput(registry);
         physics(registry);
         groundCheck(registry);
         updatePlayerAnimation(registry);

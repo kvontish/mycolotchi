@@ -62,7 +62,7 @@ class GameOverView : public View {
         registry.unset<GameOverState>();
     }
 
-    void update(entt::registry &registry) override { pollInput(registry); }
+    void update(entt::registry &) override {}
 };
 
 inline GameOverView gameOverView;

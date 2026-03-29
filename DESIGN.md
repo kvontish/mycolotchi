@@ -96,6 +96,12 @@ Purchasable with spores:
 
 ---
 
+## TODOs
+
+- **Persistence** — `Pet` state (mycelium, spores, growth stage, fog-of-war, stats) lives in RAM only and is lost on power cycle. Needs save/load to SD card or internal flash (e.g., NVS/Preferences). Should also persist `updatePetStats` timestamps so decay doesn't skip the offline period on reboot.
+
+---
+
 ## Implementation Notes
 
 - All numerical thresholds (sweet spot ranges, mycelium decay rate, growth stage thresholds, sick probability curve) are intentionally prototyping values — expect significant tuning to make the game feel right.

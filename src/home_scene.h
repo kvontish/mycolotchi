@@ -19,6 +19,8 @@ struct HomeSporeSpawner {
     uint32_t lastSpawnMs{0};
 };
 
+static constexpr int16_t kTapPad = 8; // tap tolerance around spore hitbox, in camera pixels
+
 // --- Systems ---
 
 // Moves the player horizontally and bounces at a one-sprite-width margin from each camera edge.
@@ -97,8 +99,7 @@ inline void homeTouchSystem(entt::registry *registry, const TouchEvent &e) {
         int16_t sw = sporeSprite.w;
         int16_t sh = sporeSprite.h;
 
-        // Check if touch is within spore bounds (8px padding in camera space for tap tolerance)
-        static constexpr int16_t kTapPad = 8;
+        // Check if touch is within spore bounds (kTapPad tolerance in camera space)
         if (cameraX >= sx - kTapPad && cameraX < sx + sw + kTapPad && cameraY >= sy - kTapPad &&
             cameraY < sy + sh + kTapPad) {
             collected.push_back(spore);
@@ -194,7 +195,6 @@ class HomeScene : public Scene {
     }
 
     void update(entt::registry &registry) override {
-        pollInput(registry);
         spawnSpores(registry);
         walkAndBounce(registry);
         animateSprites(registry);

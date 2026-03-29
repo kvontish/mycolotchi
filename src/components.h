@@ -43,7 +43,6 @@ struct Clock {
 
 struct GameMap {
     Scene *homeScene{nullptr};
-    Scene *titleScene{nullptr};
     Scene *gameScene{nullptr};
     Scene *clockScene{nullptr};
     Scene *menuScene{nullptr};

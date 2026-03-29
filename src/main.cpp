@@ -7,7 +7,6 @@
 #include "scene.h"
 #include "status_scene.h"
 #include "systems.h"
-#include "title_scene.h"
 #include "walk_scene.h"
 #include <M5Unified.h>
 #include <SD.h>
@@ -76,7 +75,6 @@ void setup() {
 
     auto &map        = registry.set<GameMap>();
     map.homeScene    = &homeScene;
-    map.titleScene   = &titleScene;
     map.gameScene    = &gameScene;
     map.clockScene   = &clockScene;
     map.menuScene    = &menuScene;

@@ -289,7 +289,6 @@ inline void updatePetStats(entt::registry &registry) {
     static uint32_t lastHappinessMs = 0;
     static uint32_t lastHealthMs    = 0;
     static uint32_t lastMyceliumMs  = 0;
-    static uint32_t lastSporeMs     = 0;
     static uint32_t lastSyncedSteps = 0;
 
     uint32_t now = millis();
@@ -301,7 +300,6 @@ inline void updatePetStats(entt::registry &registry) {
     if (lastHappinessMs == 0) lastHappinessMs = now;
     if (lastHealthMs == 0) lastHealthMs = now;
     if (lastMyceliumMs == 0) lastMyceliumMs = now;
-    if (lastSporeMs == 0) lastSporeMs = now;
 
     const Species &sp = *pet.species;
 
@@ -375,16 +373,6 @@ inline void updatePetStats(entt::registry &registry) {
         pet.growthStage = 2;
     else if (pet.mycelium >= sp.myceliumStage1 && pet.growthStage < 1)
         pet.growthStage = 1;
-
-    // --- Spore generation (rate proportional to mycelium) ---
-    if (pet.mycelium > 0) {
-        uint32_t sporeInterval = sp.sporeBaseMs / (1 + pet.mycelium / sp.sporeMyceliumDiv);
-        uint32_t sporeTicks    = (now - lastSporeMs) / sporeInterval;
-        if (sporeTicks > 0) {
-            pet.spores += sporeTicks;
-            lastSporeMs += sporeTicks * sporeInterval;
-        }
-    }
 
     // --- Fog-of-war: reveal bucket for current stat positions ---
     updateFogOfWar(pet);

@@ -52,10 +52,7 @@ class WalkScene : public Scene {
         registry.clear();
     }
 
-    void update(entt::registry &registry) override {
-        pollInput(registry);
-        syncSteps(registry);
-    }
+    void update(entt::registry &registry) override { syncSteps(registry); }
 };
 
 inline WalkScene walkScene;

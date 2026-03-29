@@ -21,7 +21,7 @@ struct ClockEditState {
     bool                   pm{false};
     int8_t                 month{1}; // 1-12
     int8_t                 day{1};   // 1-31
-    int16_t                year{2025};
+    int16_t                year{2026};
 };
 
 struct ClockBuffers {
@@ -117,8 +117,8 @@ inline void clockInputSystem(entt::registry *registry, const ButtonEvent &e) {
             edit.day = (edit.day % clockDaysInMonth(edit.month, edit.year)) + 1;
             break;
         case ClockFieldLabel::Field::Year:
-            edit.year++;
-            edit.day = min(edit.day, clockDaysInMonth(edit.month, edit.year));
+            edit.year = (edit.year >= 2050) ? 2026 : edit.year + 1;
+            edit.day  = min(edit.day, clockDaysInMonth(edit.month, edit.year));
             break;
         }
         break;
@@ -224,7 +224,6 @@ class ClockScene : public Scene {
     }
 
     void update(entt::registry &registry) override {
-        pollInput(registry);
         syncClockBuffers(registry);
         highlightClockField(registry);
     }
